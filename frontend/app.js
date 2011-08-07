@@ -42,9 +42,9 @@ endpoint.sockets.on('connection', function(client){
 	console.log("New client connected");
 	
 	client.emit('stateUpdate',{
-		hello: 'robert',
 		entityType: enums.EntityTypes.Player,
-		action: enums.Actions.New
+		action: enums.Actions.New,
+		data: 'lol'
 	});
     
 });
