@@ -1,9 +1,9 @@
-require('MooTools').apply(GLOBAL);
+require('mootools').apply(GLOBAL);
 
 
 var ClientHandler = new Class({
 	gameState : {},
-	sockets {},
+	sockets: {},
 	
 	initialize : function(sockets) {
 		// Fetch game state from db
