@@ -34,20 +34,9 @@ app.get('/', function(req, res){
 	
 });
 
-
 var endpoint = io.listen(app);
-endpoint.sockets.on('connection', function(client){
-	//var c = new ClientHandler(client);
-	
-	console.log("New client connected");
-	
-	client.emit('stateUpdate',{
-		entityType: enums.EntityTypes.Player,
-		action: enums.Actions.New,
-		data: 'lol'
-	});
-    
-});
+
+var clientHandler = require('./node/ClientHandler')(endpoint.sockets);
 
 
 app.listen(80);
