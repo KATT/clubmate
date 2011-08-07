@@ -39,6 +39,10 @@ socket.on('connection', function(client){
 	//var c = new ClientHandler(client);
 	
 	console.log("New client connected");
+	
+	client.emit('stateUpdate',{
+		hello: 'robert'
+	});
     
 });
 
