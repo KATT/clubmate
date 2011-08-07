@@ -1,4 +1,4 @@
-ClubMate = new Class.Singleton({
+var ClubMate = new Class.Singleton({
 	
 	Postman: {},
 	UIManager: {},
@@ -8,12 +8,25 @@ ClubMate = new Class.Singleton({
 	DebugB: null,
 
 	initialize: function() {
+	},
+	
+	Init: function() {
 		ClubMate.UIManager.InitUI();
 	}
 });   
 
+var CM = ClubMate;
 
+CM.UIManager = new Class.Singleton({
+	initialize: function() {
+		
+	},
+	
+	InitUI: function() {
+	}
+});
 
+CM.Init();
 /*GetHome.Postman = function() {
 	var ns = GetHome;
 	
