@@ -1,4 +1,4 @@
-var ClubMate = new Class.Singleton({
+var ClubMate = function() {
 	
 	Postman: {},
 	Components: {},
@@ -10,18 +10,18 @@ var ClubMate = new Class.Singleton({
 	DebugB: null,
 
 	initialize: function() {
+		this.parent();
 	},
 	
 	Init: function() {
-		this.UIManager.InitUI();
-		this.Components.Init();
+		this.getInstance().UIManager.InitUI();
+	//	this.Components.Init();
 	}
 });   
-
-var CM = ClubMate;
-
-CM.UIManager = new Class.Singleton({
+ClubMate.getInstance().UIManager.InitUI = function() { alert('bla'); };
+ClubMate.UIManager = new Class.Singleton({
 	initialize: function() {
+		this.parent();
 	},
 	
 	InitUI: function() {
@@ -29,7 +29,7 @@ CM.UIManager = new Class.Singleton({
 	}
 });
 
-CM.Components = new Class.Singleton({
+ClubMate.Components = new Class.Singleton({
 	Init: function() {
 		Crafty.c('player', {
 			init: function() {
@@ -39,7 +39,7 @@ CM.Components = new Class.Singleton({
 	}
 });
 
-CM.NetMan = new Class.Singleton({
+ClubMate.NetMan = new Class.Singleton({
 	Socket : null,
 	
 	intialize: function () {},
@@ -48,7 +48,7 @@ CM.NetMan = new Class.Singleton({
 	}
 });
 
-$(document).ready(CM.Init);
+window.addEvent('domready', ClubMate.Init);
 /*GetHome.Postman = function() {
 	var ns = GetHome;
 	
