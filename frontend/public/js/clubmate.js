@@ -1,7 +1,8 @@
 var CM = function() {
 	var Init = function() {
-		this.getInstance().UIManager.InitUI();
-		this.Components.Init();
+		CM.UIManager.InitUI();
+		CM.Components.Init();
+		CM.NetMan.Init();
 	};
 	return {
 		Components: {},
@@ -10,7 +11,9 @@ var CM = function() {
 	    Settings: {},
 	    Strings: {},
 	    DebugA: null,
-		DebugB: null
+		DebugB: null,
+		
+		Init: Init
 	};
 } ();   
 CM.UIManager = function() {
@@ -30,19 +33,19 @@ CM.Components = function() {
 			});
 		}
 	};
-} ());
+} ();
 
-ClubMate.NetMan = function() {
-	Socket : null,
+CM.NetMan = function() {
+	var Socket  = null;
 	
 	return {
 		Init: function () {
-			this.Socket = io.connect(CM.Settings.SocketURL)
+			Socket = io.connect(CM.Settings.SocketURL)
 		}
 	}
 } ();
 
-window.addEvent('domready', ClubMate.Init);
+window.addEvent('domready', CM.Init);
 /*GetHome.Postman = function() {
 	var ns = GetHome;
 	
