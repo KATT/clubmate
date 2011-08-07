@@ -1,7 +1,9 @@
 var ClubMate = new Class.Singleton({
 	
 	Postman: {},
+	Components: {},
 	UIManager: {},
+	NetMan: {},
     Settings: {},
     Strings: {},
     DebugA: null,
@@ -11,7 +13,8 @@ var ClubMate = new Class.Singleton({
 	},
 	
 	Init: function() {
-		ClubMate.UIManager.InitUI();
+		this.UIManager.InitUI();
+		this.Components.Init();
 	}
 });   
 
@@ -19,14 +22,33 @@ var CM = ClubMate;
 
 CM.UIManager = new Class.Singleton({
 	initialize: function() {
-		
 	},
 	
 	InitUI: function() {
+		
 	}
 });
 
-CM.Init();
+CM.Components = new Class.Singleton({
+	Init: function() {
+		Crafty.c('player', {
+			init: function() {
+				this.requires('2D, DOM');
+			}
+		});
+	}
+});
+
+CM.NetMan = new Class.Singleton({
+	Socket : null,
+	
+	intialize: function () {},
+	Init: function () {
+		this.Socket = io.connect(CM.Settings.SocketURL)
+	}
+});
+
+$(document).ready(CM.Init);
 /*GetHome.Postman = function() {
 	var ns = GetHome;
 	
