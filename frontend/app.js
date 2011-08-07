@@ -6,7 +6,7 @@
 var express = require('express'),
 	io = require('socket.io');
 var app = module.exports = express.createServer();
-
+var enums = require('./lib/enums')
 // Configuration
 
 app.configure(function(){
@@ -16,6 +16,7 @@ app.configure(function(){
   app.use(express.methodOverride());
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
+  app.use('/js/lib', express.static(__dirname + '/lib'));
 });
 
 app.configure('development', function(){
@@ -34,14 +35,16 @@ app.get('/', function(req, res){
 });
 
 
-var socket = io.listen(app);
-socket.on('connection', function(client){
+var endpoint = io.listen(app);
+endpoint.sockets.on('connection', function(client){
 	//var c = new ClientHandler(client);
 	
 	console.log("New client connected");
 	
 	client.emit('stateUpdate',{
-		hello: 'robert'
+		hello: 'robert',
+		entityType: enums.EntityTypes.Player,
+		action: enums.Actions.New
 	});
     
 });

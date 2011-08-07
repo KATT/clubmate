@@ -10,6 +10,7 @@ var CM = function() {
 		NetMan: {},
 	    Settings: {},
 	    Strings: {},
+		State: {},
 	    DebugA: null,
 		DebugB: null,
 		
@@ -18,7 +19,8 @@ var CM = function() {
 } ();   
 CM.UIManager = function() {
 	return {
-		InitUI: function() {		
+		InitUI: function() {
+					
 		}
 	};
 }();
@@ -38,9 +40,37 @@ CM.Components = function() {
 CM.NetMan = function() {
 	var Socket  = null;
 	
+	var EntityTypes;
+	var Actions;
+	
 	return {
 		Init: function () {
-			Socket = io.connect(CM.Settings.SocketURL)
+			EntityTypes = CM.Enums.EntityTypes;
+			Actions = CM.Enums.Actions;
+			Socket = io.connect(CM.Settings.SocketURL);
+			Socket.on('stateUpdate', function (response) {
+				switch(response.entityType) {
+					case EntityTypes.Player:
+						switch(response.action) {
+							case Actions.New:
+								CM.State.Player = response.data;
+								break;
+						}
+						break;
+					case EntityTypes.Map:
+						switch(response.action) {
+							case Actions.New:
+								CM.State.Map = response.data;
+								break;
+						}
+						break;
+					case EntityTypes.Objects:
+						break;
+					default:
+						break;
+				
+				}
+			});
 		}
 	}
 } ();
