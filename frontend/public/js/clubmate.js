@@ -47,6 +47,7 @@ CM.NetMan = function() {
 		Init: function () {
 			EntityTypes = CM.Enums.EntityTypes;
 			Actions = CM.Enums.Actions;
+			
 			Socket = io.connect(CM.Settings.SocketURL);
 			Socket.on('stateUpdate', function (response) {
 				switch(response.entityType) {
