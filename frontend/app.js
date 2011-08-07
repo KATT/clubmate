@@ -29,10 +29,9 @@ app.configure('production', function(){
 // Routes
 
 app.get('/', function(req, res){
-  res.render('index', {
-    title: 'Express'
-  });
+	res.sendfile('views/index.html'); // @todo rewrite index.html to jade-files
+	
 });
 
-app.listen(3000);
+app.listen(80);
 console.log("Express server listening on port %d in %s mode", app.address().port, app.settings.env);
