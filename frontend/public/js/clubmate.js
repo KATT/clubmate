@@ -1,52 +1,46 @@
-var ClubMate = function() {
-	
-	Postman: {},
-	Components: {},
-	UIManager: {},
-	NetMan: {},
-    Settings: {},
-    Strings: {},
-    DebugA: null,
-	DebugB: null,
-
-	initialize: function() {
-		this.parent();
-	},
-	
-	Init: function() {
+var CM = function() {
+	var Init = function() {
 		this.getInstance().UIManager.InitUI();
-	//	this.Components.Init();
-	}
-});   
-ClubMate.getInstance().UIManager.InitUI = function() { alert('bla'); };
-ClubMate.UIManager = new Class.Singleton({
-	initialize: function() {
-		this.parent();
-	},
-	
-	InitUI: function() {
-		
-	}
-});
+		this.Components.Init();
+	};
+	return {
+		Components: {},
+		UIManager: {},
+		NetMan: {},
+	    Settings: {},
+	    Strings: {},
+	    DebugA: null,
+		DebugB: null
+	};
+} ();   
+CM.UIManager = function() {
+	return {
+		InitUI: function() {		
+		}
+	};
+}();
 
-ClubMate.Components = new Class.Singleton({
-	Init: function() {
-		Crafty.c('player', {
-			init: function() {
-				this.requires('2D, DOM');
-			}
-		});
-	}
-});
+CM.Components = function() {
+	return {
+		Init: function() {
+			Crafty.c('player', {
+				init: function() {
+					this.requires('2D, DOM');
+				}
+			});
+		}
+	};
+} ());
 
-ClubMate.NetMan = new Class.Singleton({
+ClubMate.NetMan = function() {
 	Socket : null,
 	
-	intialize: function () {},
-	Init: function () {
-		this.Socket = io.connect(CM.Settings.SocketURL)
+	return {
+		Init: function () {
+			this.Socket = io.connect(CM.Settings.SocketURL)
+		}
 	}
-});
+} ();
 
 window.addEvent('domready', ClubMate.Init);
 /*GetHome.Postman = function() {
