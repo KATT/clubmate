@@ -1,5 +1,5 @@
 require('mootools');
-
+var enums = require('../lib/enums')
 
 var testMap = {
 	tiles: [
@@ -37,20 +37,32 @@ var ClientHandler = new Class({
 	},
 	
 	addClient : function(client) {
-		var testX = 0;
-		var testY = 0;
-	
-		client.emit('stateUpdate',{
+		var testX = 10;
+		var testY = 10;
+		//send sprite data
+		client.emit('asset', {
+			type: enums.AssetTypes.Sprite,
+			url: 'playerOne.png',
+			tileSize: 8,
+			spriteMap: {
+				playerOneSprite: [0, 1, 3, 3],
+				socialSprite: [0, 5, 3, 3],
+				policeSprite: [0, 9, 3, 3]
+			}
+		});
+		client.emit('stateUpdate', {
 			entityType: 'Player',
 			action: 'New',
 			data: {
 				alias: 'Bjarne',
 				x: testX,
-				y: testY
+				y: testY,
+				components: 'playerOneSprite, animate, gameSprite',
+				id: 'testPlayer1',
 			}
 		});
 		//Get map chunk for player x & y
-		client.emit('stateUpdate',{
+		client.emit('stateUpdate', {
 			entityType: 'Map',
 			action: 'New',
 			data: {

@@ -12,6 +12,7 @@ var CM = function() {
 	    Strings: {},
 		State: {
 			Player: {},
+			Objects: {},
 			Map: {
 				TileTypes: [],
 				Chunks: [{}, {}, {},{}, {}, {},	{}, {}, {}],
@@ -26,6 +27,13 @@ var CM = function() {
 } ();
 
 CM.UIManager = function() {
+	var loadAsset = function(url, onLoaded) {
+		if(!Crafty.assets[url]) {
+			Crafty.load([url], onLoaded);
+		} else {
+			onLoaded();
+		}
+	};
 	return {
 		InitUI: function() {
 			var width = CM.Settings.ViewWidth*CM.Settings.TileWidth;
@@ -33,9 +41,13 @@ CM.UIManager = function() {
 			Crafty.init(width, height);
 			Crafty.background(CM.Settings.BackgroundColor);
 			Crafty.scene('main', CM.Scenes.Main);
+			Crafty.scene('main');
+		},
+		InitEntityForObject: function(obj) {
+			Crafty.e(obj.options.components);
 		},
 		RedrawMap: function(mapChunk, tileSet) {
-			Crafty.load([CM.Settings.TilePath + tileSet.url], function() {
+			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
 				Crafty.sprite(CM.Settings.TileWidth, CM.Settings.TilePath + tileSet.url, tileSet.tiles);
 				for (var x = 0; x < CM.Settings.ViewWidth; x++) {
 					for(var y = 0; y < CM.Settings.ViewHeight; y++) {
@@ -43,23 +55,10 @@ CM.UIManager = function() {
 						Crafty.e('2D, DOM, ' + tileType).attr({x: x*CM.Settings.TileWidth, y: y*CM.Settings.TileHeight, z:1}).css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
 					}
 				}
-//				Crafty.scene('main');
-			});
-		}		
-	};
-}();
-
-CM.Components = function() {
-	return {
-		Init: function() {
-			Crafty.c('player', {
-				init: function() {
-					this.requires('2D, DOM');
-				}
 			});
 		}
 	};
-} ();
+}();
 
 CM.NetMan = function() {
 	var Socket  = null;
@@ -67,6 +66,12 @@ CM.NetMan = function() {
 	return {
 		Init: function () {
 			Socket = io.connect(CM.Settings.SocketURL);
+			Socket.on('asset', function (response) {
+				if(response.type == CM.Enums.AssetTypes.Sprite) {
+					var tileSize = typeof response.tileSize == 'undefined' ? 1 : response.tileSize;
+					Crafty.sprite(tileSize, CM.Settings.SpritePath + response.url, response.spriteMap);
+				}
+			});
 			Socket.on('stateUpdate', function (response) {
 				CM[response.entityType]['on' + response.action](response.data);
 			});
@@ -90,7 +95,10 @@ CM.Player = new Class({
 });
 CM.Player.extend({
 	onNew: function(data) {
-		CM.State.Player = new CM.Player(data);
+		var player = new CM.Player(data);
+		CM.State.Objects[player.options.id] = player;
+		CM.State.Player = player;
+		CM.UIManager.InitEntityForObject(player);
 	},
 	onUpdate: function(data) {
 		CM.State.Player.fireEvent('update', data);

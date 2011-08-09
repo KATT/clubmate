@@ -6,5 +6,6 @@ CM.Settings = {
 	TileWidth: 24,
 	TileHeight: 24,
 	FPS: 50,
-	TilePath: '/images/'
+	TilePath: '/images/',
+	SpritePath: '/images/'
 };
