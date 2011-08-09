@@ -2,13 +2,13 @@ if(CM == undefined) { var CM = {} };
 
 CM.Enums = {
 	EntityTypes: {
-		Player: 10,
-		Map: 20,
-		Objects: 30
+		Player: 'Player',
+		Map: 'Map',
+		Objects: 'Objects'
 	},
 	Actions: {
-		New: 10,
-		Update: 20
+		New: 'New',
+		Update: 'Update'
 	}
 }
 

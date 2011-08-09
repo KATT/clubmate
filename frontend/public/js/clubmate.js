@@ -50,31 +50,31 @@ CM.NetMan = function() {
 			
 			Socket = io.connect(CM.Settings.SocketURL);
 			Socket.on('stateUpdate', function (response) {
-				switch(response.entityType) {
-					case EntityTypes.Player:
-						switch(response.action) {
-							case Actions.New:
-								CM.State.Player = response.data;
-								break;
-						}
-						break;
-					case EntityTypes.Map:
-						switch(response.action) {
-							case Actions.New:
-								CM.State.Map = response.data;
-								break;
-						}
-						break;
-					case EntityTypes.Objects:
-						break;
-					default:
-						break;
-				
-				}
+				var entity = CM[response.entityType];
+				entity['on' + response.action](response.data);
 			});
 		}
 	}
 } ();
+
+CM.Player = new Class({
+	Implements: [Options, Events],
+	options: {
+		alias: 'Anon',
+		x: 0,
+		y: 0,
+	},
+	initialize: function(options) {
+		this.setOptions(options);
+	},
+});
+CM.Player.extend({
+	onNew: function(data) {
+		CM.State.Player = new CM.Player(data);
+	},
+	onUpdate: function(data) {}
+})
+
 
 window.addEvent('domready', CM.Init);
 /*GetHome.Postman = function() {

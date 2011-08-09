@@ -19,7 +19,7 @@ var ClientHandler = new Class({
 		client.emit('stateUpdate',{
 			entityType: enums.EntityTypes.Player,
 			action: enums.Actions.New,
-			data: 'lol'
+			data: {alias: 'Bjarne'}
 		});
 	}
 	
