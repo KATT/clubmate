@@ -8,6 +8,8 @@ var MapSchema = new Schema({
 	tiles	: [ TilesSchema ],
 	width	: { type: Number },
 	height	: { type: Number },
+	x : { type: Number },
+	y : { type: Number }
 });
 
 
