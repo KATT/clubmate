@@ -1,4 +1,4 @@
-require('mootools').apply(GLOBAL);
+require('mootools');
 
 
 var ClientHandler = new Class({
@@ -7,7 +7,7 @@ var ClientHandler = new Class({
 	
 	initialize : function(sockets) {
 		// Fetch game state from db
-		this.sockets=sockets;
+		this.sockets = sockets;
 		
 		this.sockets.on('connection', this.addClient.bind(this));
 	},
@@ -26,4 +26,4 @@ var ClientHandler = new Class({
 
 
 
-module.export = new ClientHandler;
+module.exports = function(v) { return new ClientHandler(v); };
