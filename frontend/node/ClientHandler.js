@@ -56,6 +56,10 @@ var ClientHandler = new Class({
 			data: {
 				map: testMap,
 				tileTypes: testTiles,
+				tileSet: {
+					url: 'tiles.png',
+					tiles: {street: [0, 0],	fence: [0, 1], lawn: [0, 2], house: [0, 3, 1, 9]}
+				},
 				x: 0, //These coordinates are the position of the map relative to the player. 0:0 is thus always the one we're standing on at the moment.
 				y: 0
 			}

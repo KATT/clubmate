@@ -28,10 +28,23 @@ var CM = function() {
 CM.UIManager = function() {
 	return {
 		InitUI: function() {
-					
+			var width = CM.Settings.ViewWidth*CM.Settings.TileWidth;
+			var height = CM.Settings.ViewHeight*CM.Settings.TileHeight;
+			Crafty.init(width, height);
+			Crafty.background(CM.Settings.BackgroundColor);
+			Crafty.scene('main', CM.Scenes.Main);
 		},
-		RedrawMap: function() {
-			
+		RedrawMap: function(mapChunk, tileSet) {
+			Crafty.load([CM.Settings.TilePath + tileSet.url], function() {
+				Crafty.sprite(CM.Settings.TileWidth, CM.Settings.TilePath + tileSet.url, tileSet.tiles);
+				for (var x = 0; x < CM.Settings.ViewWidth; x++) {
+					for(var y = 0; y < CM.Settings.ViewHeight; y++) {
+						var tileType = CM.State.Map.TileTypes[mapChunk.options.tiles[x + y*mapChunk.options.width]]; //TODO: Right index based on player position and shit
+						Crafty.e('2D, DOM, ' + tileType).attr({x: x*CM.Settings.TileWidth, y: y*CM.Settings.TileHeight, z:1}).css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
+					}
+				}
+//				Crafty.scene('main');
+			});
 		}		
 	};
 }();
@@ -99,14 +112,25 @@ CM.Map = new Class({
 });
 CM.Map.extend({
 	onNew: function(data) {
-		if(data.map) {
-			CM.State.Map.Chunks[(1+data.y)*3+data.x+1] = new CM.Map(data.map); //middle in array is 0:0
-		}
 		if(data.tileTypes) {
 			CM.State.Map.TileTypes = data.tileTypes;
 		}
-		CM.UIManager.RedrawMap();
+		if(data.map) {
+			var map = new CM.Map(data.map);
+			CM.State.Map.Chunks[(1+data.y)*3+data.x+1] = map; //middle in array is 0:0
+			CM.UIManager.RedrawMap(map, data.tileSet);
+		}
 	},
 	onUpdate: function(data) {}
 });
+
+CM.Scenes = function() {
+	return {
+		Loading: function () {
+		},
+		Main: function () {
+		}
+	};
+
+} ();
 window.addEvent('domready', CM.Init);
