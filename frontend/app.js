@@ -6,7 +6,6 @@
 var express = require('express'),
 	io = require('socket.io');
 var app = module.exports = express.createServer();
-var enums = require('./lib/enums')
 // Configuration
 
 app.configure(function(){

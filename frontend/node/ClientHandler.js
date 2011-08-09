@@ -1,4 +1,5 @@
 require('mootools');
+var enums = require('../lib/enums')
 
 
 var ClientHandler = new Class({
