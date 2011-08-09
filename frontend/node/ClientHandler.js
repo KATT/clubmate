@@ -1,5 +1,4 @@
 require('mootools');
-var enums = require('../lib/enums')
 
 
 var ClientHandler = new Class({
@@ -17,8 +16,8 @@ var ClientHandler = new Class({
 		
 
 		client.emit('stateUpdate',{
-			entityType: enums.EntityTypes.Player,
-			action: enums.Actions.New,
+			entityType: 'Player',
+			action: 'New',
 			data: {alias: 'Bjarne'}
 		});
 	}

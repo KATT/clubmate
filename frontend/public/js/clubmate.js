@@ -40,14 +40,8 @@ CM.Components = function() {
 CM.NetMan = function() {
 	var Socket  = null;
 	
-	var EntityTypes;
-	var Actions;
-	
 	return {
 		Init: function () {
-			EntityTypes = CM.Enums.EntityTypes;
-			Actions = CM.Enums.Actions;
-			
 			Socket = io.connect(CM.Settings.SocketURL);
 			Socket.on('stateUpdate', function (response) {
 				var entity = CM[response.entityType];
@@ -68,6 +62,7 @@ CM.Player = new Class({
 		this.setOptions(options);
 	},
 });
+
 CM.Player.extend({
 	onNew: function(data) {
 		CM.State.Player = new CM.Player(data);
