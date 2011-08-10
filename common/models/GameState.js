@@ -1,14 +1,12 @@
 var mongoose = require('mongoose'),
 	Schema	 = mongoose.Schema;
 
-var TilesSchema = require('./Tiles').TilesSchema;
+var MapSchema = require('./Map').MapSchema;
 var PlayerSchema = require('./Player').PlayerSchema;
 
 var GameStateSchema = new Schema({
 	players			: [ PlayerSchema ],
-	playersOnline	: [ PlayerSchema ],
-	map 			: ObjectId // Map
-	
+	map				: [ MapSchema ] // Map
 });
 
 

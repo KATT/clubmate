@@ -62,6 +62,9 @@ CM.UIManager = function() {
 			e.Object = obj;
 			e.UpdatePosition();
 		},
+		InitSpriteMap: function(tileSize, url, spriteMap) {
+			Crafty.sprite(tileSize, CM.Settings.SpritePath + url, spriteMap);
+		},
 		RedrawMap: function(mapChunk, tileSet) {
 			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
 				Crafty.sprite(CM.Settings.TileWidth, CM.Settings.TilePath + tileSet.url, tileSet.tiles);
@@ -72,7 +75,7 @@ CM.UIManager = function() {
 					}
 				}
 			});
-		}
+		},
 	};
 }();
 
@@ -85,7 +88,7 @@ CM.NetMan = function() {
 			Socket.on('asset', function (response) {
 				if(response.type == CM.Enums.AssetTypes.Sprite) {
 					var tileSize = typeof response.tileSize == 'undefined' ? 1 : response.tileSize;
-					Crafty.sprite(tileSize, CM.Settings.SpritePath + response.url, response.spriteMap);
+					CM.UIManager.InitSpriteMap(tileSize, response.url, response.spriteMap);
 				}
 			});
 			Socket.on('stateUpdate', function (response) {

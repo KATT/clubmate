@@ -4,15 +4,11 @@ var mongoose = require('mongoose'),
 var utils = require('../utils');
 
 var PlayerSchema = new Schema({
-	user		: { type: String, unique: true, validate: /^[A-Z0-9._%+-]+$/i },
-	
+	alias		: { type: String, unique: true, validate: /^[A-Z0-9._%+-]+$/i },
 	password	: { type: String, index: true, set: setPassword },
 	email		: { type: String, unique: false, set: toLower, validate: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i },
-	
 	apiKey		: { type: String, unique: true },
-	
-	created		: {type: Date, default: Date.now}
-	
+	created		: { type: Date, default: Date.now }
 });
 
 var salt = 'JRt3bzghjJ';

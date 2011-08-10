@@ -5,7 +5,9 @@ var TilesSchema = require('./Tiles').TilesSchema;
 var PlayerSchema = require('./Player').PlayerSchema;
 
 var MapSchema = new Schema({
-	tiles	: [ TilesSchema ],
+	tiles	: [ Number ],
+	objects: [ObjectId],
+	onlinePlayers: [ObjectId],
 	width	: { type: Number },
 	height	: { type: Number },
 	x : { type: Number },
