@@ -34,6 +34,10 @@ CM.UIManager = function() {
 			onLoaded();
 		}
 	};
+	var movePlayer = function(dx, dy) {
+		CM.NetMan.Send('movePlayer', { x: CM.State.Player.options.x + dx, y: CM.State.Player.options.y + dy });
+	};
+
 	return {
 		InitUI: function() {
 			var width = CM.Settings.ViewWidth*CM.Settings.TileWidth;
@@ -42,9 +46,21 @@ CM.UIManager = function() {
 			Crafty.background(CM.Settings.BackgroundColor);
 			Crafty.scene('main', CM.Scenes.Main);
 			Crafty.scene('main');
+			
+			var keyboardListener = new Keyboard({
+				active: true
+			});
+			keyboardListener.addEvents({
+			    'up': function() { movePlayer(0, -1); },
+			    'down': function() { movePlayer(0, 1); },
+			    'left': function() { movePlayer(-1, 0); },
+			    'right': function() { movePlayer(1, 0); },
+			});
 		},
 		InitEntityForObject: function(obj) {
-			Crafty.e(obj.options.components);
+			var e = Crafty.e(obj.options.components);
+			e.Object = obj;
+			e.UpdatePosition();
 		},
 		RedrawMap: function(mapChunk, tileSet) {
 			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
@@ -52,7 +68,7 @@ CM.UIManager = function() {
 				for (var x = 0; x < CM.Settings.ViewWidth; x++) {
 					for(var y = 0; y < CM.Settings.ViewHeight; y++) {
 						var tileType = CM.State.Map.TileTypes[mapChunk.options.tiles[x + y*mapChunk.options.width]]; //TODO: Right index based on player position and shit
-						Crafty.e('2D, DOM, ' + tileType).attr({x: x*CM.Settings.TileWidth, y: y*CM.Settings.TileHeight, z:1}).css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
+						Crafty.e('2D, DOM, ' + tileType).attr({x: x*CM.Settings.TileWidth, y: y*CM.Settings.TileHeight, z:1});//.css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
 					}
 				}
 			});
@@ -61,7 +77,7 @@ CM.UIManager = function() {
 }();
 
 CM.NetMan = function() {
-	var Socket  = null;
+	var Socket = null;
 	
 	return {
 		Init: function () {
@@ -75,6 +91,13 @@ CM.NetMan = function() {
 			Socket.on('stateUpdate', function (response) {
 				CM[response.entityType]['on' + response.action](response.data);
 			});
+		},
+		Send: function(command, data) {
+			if(Socket == null) {
+				alert("Socket not initialized!");
+				return;
+			}
+			Socket.emit(command, {token: 'token', data: data});
 		}
 	}
 } ();
@@ -85,8 +108,9 @@ CM.Player = new Class({
 		alias: 'Anon',
 		x: 0,
 		y: 0,
-		onUpdate: function(data) {
+		onUpdate: function(options) {
 			//When player update is received. Just to make it more general and apply a base class to other players than self in the future.
+			this.setOptions(options);
 		}
 	},
 	initialize: function(options) {
