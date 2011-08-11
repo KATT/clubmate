@@ -60,17 +60,35 @@ CM.UIManager = function() {
 		InitEntityForObject: function(obj) {
 			var e = Crafty.e(obj.options.components);
 			e.Object = obj;
+			obj.Entity = e;
 			e.UpdatePosition();
 		},
 		InitSpriteMap: function(tileSize, url, spriteMap) {
 			Crafty.sprite(tileSize, CM.Settings.SpritePath + url, spriteMap);
+			for(var i in CM.State.Objects) {
+				var obj = CM.State.Objects[i];
+				if(typeof obj.Entity == 'undefined') {
+					CM.UIManager.InitEntityForObject(obj);
+				}
+			}
 		},
+		InitMapTiles: function(tileSet) {
+			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
+				for(var i in CM.State.Map.Chunks) {
+					var chunk = CM.State.Map.Chunks[i];
+					if(chunk.options && chunk.options.tileSet == tileSet._id) {
+						CM.UIManager.RedrawMap(chunk, tileSet);
+					}
+				}
+			});
+		},
+		
 		RedrawMap: function(mapChunk, tileSet) {
 			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
-				Crafty.sprite(CM.Settings.TileWidth, CM.Settings.TilePath + tileSet.url, tileSet.tiles);
+				Crafty.sprite(CM.Settings.TileWidth, CM.Settings.TilePath + tileSet.url, tileSet.data);
 				for (var x = 0; x < CM.Settings.ViewWidth; x++) {
 					for(var y = 0; y < CM.Settings.ViewHeight; y++) {
-						var tileType = CM.State.Map.TileTypes[mapChunk.options.tiles[x + y*mapChunk.options.width]]; //TODO: Right index based on player position and shit
+						var tileType = tileSet.tileTypes[mapChunk.options.tiles[x + y*mapChunk.options.width]]; //TODO: Right index based on player position and shit
 						Crafty.e('2D, DOM, ' + tileType).attr({x: x*CM.Settings.TileWidth, y: y*CM.Settings.TileHeight, z:1});//.css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
 					}
 				}
@@ -83,13 +101,20 @@ CM.NetMan = function() {
 	var Socket = null;
 	
 	return {
+		LoadedAssets: [],
 		Init: function () {
 			Socket = io.connect(CM.Settings.SocketURL);
 			Socket.on('asset', function (response) {
-				if(response.type == CM.Enums.AssetTypes.Sprite) {
-					var tileSize = typeof response.tileSize == 'undefined' ? 1 : response.tileSize;
-					CM.UIManager.InitSpriteMap(tileSize, response.url, response.spriteMap);
+				switch(response.type) {
+					case CM.Enums.AssetTypes.Sprite:
+						var tileSize = typeof response.tileSize == 'undefined' ? 1 : response.tileSize;
+						CM.UIManager.InitSpriteMap(tileSize, response.url, response.data);
+						break;
+					case CM.Enums.AssetTypes.MapTiles:
+						CM.UIManager.InitMapTiles(response);
+						break;
 				}
+				CM.NetMan.LoadedAssets.push(response._id);
 			});
 			Socket.on('stateUpdate', function (response) {
 				CM[response.entityType]['on' + response.action](response.data);
@@ -101,6 +126,9 @@ CM.NetMan = function() {
 				return;
 			}
 			Socket.emit(command, {token: 'token', data: data});
+		},
+		GetTileSet: function(id) {
+			this.Send('getTileSet', id);
 		}
 	}
 } ();
@@ -122,10 +150,16 @@ CM.Player = new Class({
 });
 CM.Player.extend({
 	onNew: function(data) {
+		data.components = data.sprite.key + ', animate, gameSprite'
+		data.z = 2;
 		var player = new CM.Player(data);
-		CM.State.Objects[player.options.id] = player;
+		CM.State.Objects[player.options._id] = player;
 		CM.State.Player = player;
-		CM.UIManager.InitEntityForObject(player);
+		if(CM.NetMan.LoadedAssets[data.sprite.tileSet]) {
+			CM.UIManager.InitEntityForObject(player);
+		} else {
+			CM.NetMan.GetTileSet(data.sprite.tileSet);
+		}
 	},
 	onUpdate: function(data) {
 		CM.State.Player.fireEvent('update', data);
@@ -147,13 +181,16 @@ CM.Map = new Class({
 });
 CM.Map.extend({
 	onNew: function(data) {
-		if(data.tileTypes) {
-			CM.State.Map.TileTypes = data.tileTypes;
-		}
-		if(data.map) {
-			var map = new CM.Map(data.map);
-			CM.State.Map.Chunks[(1+data.y)*3+data.x+1] = map; //middle in array is 0:0
-			CM.UIManager.RedrawMap(map, data.tileSet);
+//		if(data.tileTypes) {
+//			CM.State.Map.TileTypes = data.tileTypes;
+//		}
+		var map = new CM.Map(data);
+		CM.State.Map.Chunks[(1+data.y)*3+data.x+1] = map; //middle in array is 0:0
+
+		if(CM.NetMan.LoadedAssets[map.tileSet]) {
+			CM.UIManager.RedrawMap(map);
+		} else {
+			CM.NetMan.GetTileSet(data.tileSet);
 		}
 	},
 	onUpdate: function(data) {}

@@ -1,4 +1,6 @@
+var hashlib = require('hashlib');
 
+var salt = 'JRt3bzghjJ';
 
 function hash() {
 	var str = salt;
@@ -10,6 +12,11 @@ function hash() {
 	return hashlib.sha1(str);
 }
 
+function toLower(str) {
+	return str.toLowerCase();
+}
+
 module.exports = {
 	hash: hash,
+	toLower: toLower
 }

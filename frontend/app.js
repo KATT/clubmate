@@ -3,8 +3,9 @@
  * Module dependencies.
  */
 
-var express = require('express'),
-	io = require('socket.io');
+var express = require('express');
+var io = require('socket.io');
+require('../common/db')
 var app = module.exports = express.createServer();
 // Configuration
 
