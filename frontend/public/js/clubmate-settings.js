@@ -3,6 +3,8 @@ CM.Settings = {
 	BackgroundColor: '#000',
 	ViewWidth: 20,
 	ViewHeight: 14,
+	xOffset: 10,
+	yOffset: 7,
 	TileWidth: 24,
 	TileHeight: 24,
 	FPS: 50,

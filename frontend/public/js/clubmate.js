@@ -86,9 +86,10 @@ CM.UIManager = function() {
 		RedrawMap: function(mapChunk, tileSet) {
 			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
 				Crafty.sprite(CM.Settings.TileWidth, CM.Settings.TilePath + tileSet.url, tileSet.data);
-				for (var x = 0; x < CM.Settings.ViewWidth; x++) {
-					for(var y = 0; y < CM.Settings.ViewHeight; y++) {
-						var tileType = tileSet.tileTypes[mapChunk.options.tiles[x + y*mapChunk.options.width]]; //TODO: Right index based on player position and shit
+				for (var x = 0; x < mapChunk.options.width; x++) {
+					for(var y = 0; y < mapChunk.options.height; y++) {
+						//var tileType = tileSet.tileTypes[mapChunk.options.tiles[CM.State.Player.options.x + x + CM.Settings.xOffset + (CM.State.Player.options.y + y + CM.Settings.yOffset)*mapChunk.options.width]]; //TODO: Right index based on player position and shit
+						var tileType = tileSet.tileTypes[mapChunk.options.tiles[CM.State.Player.options.x + x + (CM.State.Player.options.y + y)*mapChunk.options.width]]; //TODO: Right index based on player position and shit
 						Crafty.e('2D, DOM, ' + tileType).attr({x: x*CM.Settings.TileWidth, y: y*CM.Settings.TileHeight, z:1});//.css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
 					}
 				}
@@ -151,7 +152,6 @@ CM.Player = new Class({
 CM.Player.extend({
 	onNew: function(data) {
 		data.components = data.sprite.key + ', animate, gameSprite'
-		data.z = 2;
 		var player = new CM.Player(data);
 		CM.State.Objects[player.options._id] = player;
 		CM.State.Player = player;
@@ -181,9 +181,6 @@ CM.Map = new Class({
 });
 CM.Map.extend({
 	onNew: function(data) {
-//		if(data.tileTypes) {
-//			CM.State.Map.TileTypes = data.tileTypes;
-//		}
 		var map = new CM.Map(data);
 		CM.State.Map.Chunks[(1+data.y)*3+data.x+1] = map; //middle in array is 0:0
 

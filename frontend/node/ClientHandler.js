@@ -36,11 +36,13 @@ var ClientHandler = new Class({
 			action: 'New',
 			data: map
 		});
+		
 		client.emit('stateUpdate', {
 			entityType: 'Player',
 			action: 'New',
 			data: testPlayer
 		});
+		
 		//Get map chunk for player x & y
 		client.on('movePlayer', this.movePlayer.bind(this));
 		client.on('getTileSet', this.getTileSet.bind(this));

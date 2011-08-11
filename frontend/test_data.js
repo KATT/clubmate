@@ -50,9 +50,9 @@ function createTileSet() {
 	tileSet.save();
 	return tileSet;
 }
-
-function createMap(tileSet, player) {
-	var map = new Map({
+function createMaps(tileSet, player) {
+	var maps = [];
+	var mapData = {
 		tiles: [
 			0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
 			0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
@@ -68,30 +68,53 @@ function createMap(tileSet, player) {
 			0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
 			0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
 			0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
-		x: 0,
-		y: 0,
 		width: 20,
 		height: 14,
-		objects: [player],
-		onlinePlayers: [player],
 		tileSet: tileSet		
-	});
-	//map.save();
-	return map;
+	};
+	
+	for(var x = -2; x <= 2; x++) {
+		for(var y=-2; y <=2 ; y++) {
+			var m = new Map(mapData);
+			m.x = x;
+			m.y = y;
+			if(x == 0 && y == 0) {
+				m.objects = [player];
+				m.onlinePlayers = [player];
+				m.tiles = [
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,2,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1,
+					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1];
+			 	player.map = m;
+			}
+			maps.push(m);
+		}
+	}
+	return maps;
 }
 
-function createGameState(map) {
+function createGameState(maps) {
 	var gameState = new GameState({
-		map: map
+		map: maps
 	});
 	gameState.save();
 	return gameState;
 }
 
 var player = createPlayer(createSprite());
-var map = createMap(createTileSet(), player);
-var gameState = createGameState(map);
-player.map = map;
+var maps = createMaps(createTileSet(), player);
+var gameState = createGameState(maps);
 player.save();
 console.log('finished');
 
