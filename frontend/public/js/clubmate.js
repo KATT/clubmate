@@ -42,7 +42,7 @@ CM.UIManager = function() {
 			var width = CM.Settings.ViewWidth*CM.Settings.TileWidth;
 			var height = CM.Settings.ViewHeight*CM.Settings.TileHeight;
 			Crafty.init(width, height);
-			//Crafty.Canvas();
+			Crafty.canvas.init();
 			Crafty.background(CM.Settings.BackgroundColor);
 			Crafty.scene('main', CM.Scenes.Main);
 			Crafty.scene('main');
@@ -95,7 +95,7 @@ CM.UIManager = function() {
 				for (var x = 0; x < mapChunk.options.width; x++) {
 					for(var y = 0; y < mapChunk.options.height; y++) {
 						var tileType = tileSet.tileTypes[mapChunk.options.tiles[x + (y)*mapChunk.options.width]]; //TODO: Right index based on player position and shit
-						Crafty.e('2D, DOM, ' + tileType).attr({x: mx + x*CM.Settings.TileWidth, y: my + y*CM.Settings.TileHeight, z:1});//.css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
+						Crafty.e('2D, Canvas, ' + tileType).attr({x: mx + x*CM.Settings.TileWidth, y: my + y*CM.Settings.TileHeight, z:0});//.css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
 					}
 				}
 			});
