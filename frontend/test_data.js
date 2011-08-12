@@ -98,6 +98,7 @@ function createMaps(tileSet, player) {
 					1,1,1,1,1,1,1,1,2,0,1,1,1,1,1,1,1,1,1,1];
 			 	player.map = m;
 			}
+			m.save()
 			maps.push(m);
 		}
 	}
@@ -114,7 +115,7 @@ function createGameState(maps) {
 
 var player = createPlayer(createSprite());
 var maps = createMaps(createTileSet(), player);
-var gameState = createGameState(maps);
+//var gameState = createGameState(maps);
 player.save();
 console.log('finished');
 

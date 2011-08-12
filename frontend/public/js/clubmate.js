@@ -15,8 +15,7 @@ var CM = function() {
 			Objects: {},
 			Map: {
 				TileTypes: [],
-				Chunks: [{}, {}, {},{}, {}, {},	{}, {}, {}],
-				MiddleChunk: {x: 0, y: 0}
+				Chunks: [{}, {}, {},{}, {}, {},	{}, {}, {}]
 			}
 		},
 	    DebugA: null,
@@ -43,6 +42,7 @@ CM.UIManager = function() {
 			var width = CM.Settings.ViewWidth*CM.Settings.TileWidth;
 			var height = CM.Settings.ViewHeight*CM.Settings.TileHeight;
 			Crafty.init(width, height);
+			//Crafty.Canvas();
 			Crafty.background(CM.Settings.BackgroundColor);
 			Crafty.scene('main', CM.Scenes.Main);
 			Crafty.scene('main');
@@ -76,12 +76,11 @@ CM.UIManager = function() {
 		},
 		InitMapTiles: function(tileSet) {
 			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
-				for(var i in CM.State.Map.Chunks) {
-					var chunk = CM.State.Map.Chunks[i];
+				CM.State.Map.Chunks.each(function(chunk) {
 					if(chunk.options && chunk.options.tileSet == tileSet._id) {
 						CM.UIManager.RedrawMap(chunk, tileSet);
 					}
-				}
+				});
 			});
 		},
 		Scroll: function(x, y) {
@@ -91,10 +90,12 @@ CM.UIManager = function() {
 		RedrawMap: function(mapChunk, tileSet) {
 			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
 				Crafty.sprite(CM.Settings.TileWidth, CM.Settings.TilePath + tileSet.url, tileSet.data);
+				var my = mapChunk.options.y*CM.Settings.TileHeight*mapChunk.options.height;
+				var mx = mapChunk.options.x*CM.Settings.TileWidth*mapChunk.options.width;
 				for (var x = 0; x < mapChunk.options.width; x++) {
 					for(var y = 0; y < mapChunk.options.height; y++) {
 						var tileType = tileSet.tileTypes[mapChunk.options.tiles[x + (y)*mapChunk.options.width]]; //TODO: Right index based on player position and shit
-						Crafty.e('2D, DOM, ' + tileType).attr({x: x*CM.Settings.TileWidth, y: y*CM.Settings.TileHeight, z:1});//.css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
+						Crafty.e('2D, DOM, ' + tileType).attr({x: mx + x*CM.Settings.TileWidth, y: my + y*CM.Settings.TileHeight, z:1});//.css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
 					}
 				}
 			});
@@ -107,6 +108,7 @@ CM.NetMan = function() {
 	
 	return {
 		LoadedAssets: [],
+		LoadingAssets: [],
 		Init: function () {
 			Socket = io.connect(CM.Settings.SocketURL);
 			Socket.on('asset', function (response) {
@@ -120,9 +122,12 @@ CM.NetMan = function() {
 						break;
 				}
 				CM.NetMan.LoadedAssets.push(response._id);
+				CM.NetMan.LoadingAssets.erase(response._id);
 			});
 			Socket.on('stateUpdate', function (response) {
-				CM[response.entityType]['on' + response.action](response.data);
+				response.data.each(function(item, i) {
+					CM[response.entityType]['on' + response.action](item);
+				});
 			});
 		},
 		Send: function(command, data) {
@@ -133,7 +138,10 @@ CM.NetMan = function() {
 			Socket.emit(command, {token: 'token', data: data});
 		},
 		GetTileSet: function(id) {
-			this.Send('getTileSet', id);
+			if (CM.NetMan.LoadingAssets.indexOf(id) == -1) {
+				CM.NetMan.LoadingAssets.push(id);
+				this.Send('getTileSet', id);
+			}
 		}
 	}
 } ();
@@ -189,7 +197,7 @@ CM.Map.extend({
 		var map = new CM.Map(data);
 		CM.State.Map.Chunks[(1+data.y)*3+data.x+1] = map; //middle in array is 0:0
 
-		if(CM.NetMan.LoadedAssets[map.tileSet]) {
+		if(CM.NetMan.LoadedAssets[data.tileSet]) {
 			CM.UIManager.RedrawMap(map);
 		} else {
 			CM.NetMan.GetTileSet(data.tileSet);

@@ -30,17 +30,25 @@ var ClientHandler = new Class({
 		client.set('token', 'test');
 
 		var mapid = String(testPlayer.map);
-		var map = gameState.map.id(new ObjectId(mapid));
-		client.emit('stateUpdate', {
-			entityType: 'Map',
-			action: 'New',
-			data: map
+		var map = Map.findOne({_id: new ObjectId(mapid)}, function(err, map) {
+			console.log('id: ' + map._id + 'x: ' + map.x + 'y: ' + map.y)
+//			Map.find({x: {'$gte': map.x - 1, '$lte': map.x + 1}, y: {'$gte': map.y - 1, '$lte': map.y + 1}}).sort([['y', 'ascending'], ['x', 'descending']], function(err, maps) {
+			Map.find({x: {'$gte': map.x - 1, '$lte': map.x + 1}, y: {'$gte': map.y - 1, '$lte': map.y + 1}}, function(err, maps) {
+				if (err) {
+					console.log('Map Error: ' + err);
+					throw err;
+				}
+				client.emit('stateUpdate', {
+					entityType: 'Map',
+					action: 'New',
+					data: maps
+				});
+			});
 		});
-		
 		client.emit('stateUpdate', {
 			entityType: 'Player',
 			action: 'New',
-			data: testPlayer
+			data: [testPlayer]
 		});
 		
 		//Get map chunk for player x & y
@@ -55,19 +63,23 @@ var ClientHandler = new Class({
 		this.sockets.emit('stateUpdate', {
 			entityType: 'Player',
 			action: 'Update',
-			data: testPlayer
+			data: [testPlayer]
 		});
 	},
 	
 	getTileSet: function(req) {
-		var client = this;
-		TileSet.findOne({_id: new ObjectId(String(req.data))}, function(err, tileSet) {
-				if(err) {
-					console.log('Error: ' + err);
-				} else {
-					client.sockets.emit('asset', tileSet);
-				}
-			});
+		try {
+			var client = this;
+			TileSet.findOne({_id: new ObjectId(String(req.data))}, function(err, tileSet) {
+					if(err) {
+						console.log('Error: ' + err);
+					} else {
+						client.sockets.emit('asset', tileSet);
+					}
+				});
+		} catch(err) {
+			console.log('getTileSet Error: ' + err);
+		}
 	}
 });
 

@@ -1,10 +1,11 @@
 var mongoose = require('mongoose'),
-	Schema	 = mongoose.Schema;
+	Schema	 = mongoose.Schema,
+	ObjectId = Schema.ObjectId;
 
 var MapSchema = require('./Map').MapSchema;
 
 var GameStateSchema = new Schema({
-	map				: [ MapSchema ]
+	map				: [ ObjectId ]
 });
 
 
