@@ -17,7 +17,6 @@ CM.Components = function() {
 						} else if(Crafty.viewport.y < yPos) {
 							Crafty.viewport.y++;
 						}
-
 					});
 				}
 			});
@@ -28,9 +27,8 @@ CM.Components = function() {
 					this.attr({w: CM.Settings.TileWidth, h: CM.Settings.TileHeight, z: 2});
 					//this.animate('walk_right', [[120,8], [96,8], [120,8], [72,8]]);
 					this.bind('EnterFrame', function() {
-						var map = CM.State.Map.Chunks[CM.State.Player.options.map];
-						var xOffset = map.options.x*map.options.width;
-						var yOffset = map.options.y*map.options.height;
+						var xOffset = CM.State.Player.options.mapX*CM.Settings.MapWidth;
+						var yOffset = CM.State.Player.options.mapY*CM.Settings.MapHeight;
 						var targetX = (this.Object.options.x + xOffset) * CM.Settings.TileWidth;
 						var targetY = (this.Object.options.y + yOffset) * CM.Settings.TileHeight;
 						if(this.y != targetY || this.x != targetX) {
@@ -49,9 +47,8 @@ CM.Components = function() {
 				},
 				
 				UpdatePosition: function() {
-					var map = CM.State.Map.Chunks[CM.State.Player.options.map];
-					this.x = (this.Object.options.x + map.options.x*map.options.width)* CM.Settings.TileWidth;
-					this.y = (this.Object.options.y + map.options.y*map.options.height)* CM.Settings.TileHeight;
+					this.x = (this.Object.options.x + CM.State.Player.options.mapX*CM.Settings.MapWidth)* CM.Settings.TileWidth;
+					this.y = (this.Object.options.y + CM.State.Player.options.mapY*CM.Settings.MapHeight)* CM.Settings.TileHeight;
 				}
 			});
 		}

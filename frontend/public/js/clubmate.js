@@ -86,8 +86,10 @@ CM.UIManager = function() {
 		},
 		Scroll: function(x, y) {
 			var map = CM.State.Map.Chunks[CM.State.Player.options.map];
-			Crafty.viewport.x = (map.x*map.width+CM.Settings.xOffset - x)*CM.Settings.TileWidth;
-			Crafty.viewport.y = (map.y*map.height+CM.Settings.yOffset - y)*CM.Settings.TileWidth;
+			if(typeof map != 'undefined') {
+				Crafty.viewport.x = (map.x*map.width+CM.Settings.xOffset - x)*CM.Settings.TileWidth;
+				Crafty.viewport.y = (map.y*map.height+CM.Settings.yOffset - y)*CM.Settings.TileWidth;
+			}
 		},
 		RedrawMap: function(mapChunk, tileSet) {
 			loadAsset(CM.Settings.TilePath + tileSet.url, function() {

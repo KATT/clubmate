@@ -34,7 +34,9 @@ function createPlayer(sprite) {
 		y: 12,
 		targetX: 10,
 		targetY: 12,
-		sprite: sprite
+		sprite: sprite,
+		mapX: 0,
+		mapY: 0
 	});
 	player.save();
 	return player;
@@ -65,7 +67,6 @@ function createMaps(tileSet, player) {
 	for(var x = -2; x <= 2; x++) {
 		for(var y=-2; y <=2 ; y++) {
 			var t = ((y+2)+(5*(x+2))) % 12;
-			console.log(t);
 			var m = new Map(mapData);
 			m.x = x;
 			m.y = y;
@@ -83,6 +84,7 @@ function createMaps(tileSet, player) {
 			}
 			m.save()
 			maps.push(m);
+			console.log(t);
 		}
 	}
 	return maps;

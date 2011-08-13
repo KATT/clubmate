@@ -1,3 +1,5 @@
+if(CM == undefined) { var CM = {} };
+
 CM.Settings = {
 	SocketURL : 'http://localhost/',
 	BackgroundColor: '#000',
@@ -9,5 +11,12 @@ CM.Settings = {
 	TileHeight: 24,
 	FPS: 50,
 	TilePath: '/images/',
-	SpritePath: '/images/'
+	SpritePath: '/images/',
+	MapWidth: 40,
+	MapHeight: 28
 };
+
+
+if(typeof module != 'undefined') {
+    module.exports = CM.Settings;
+}

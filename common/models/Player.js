@@ -18,6 +18,8 @@ var PlayerSchema = new Schema({
 	targetX: { type: Number },
 	targetY: { type: Number },
 	map: { type: ObjectId },
+	mapX: {type: Number},
+	mapY: {type: Number},
 	sprite: { type: {} } //Should be SpriteSchema, dunno why not work ;(
 });
 
