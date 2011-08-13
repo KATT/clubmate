@@ -15,7 +15,7 @@ var CM = function() {
 			Objects: {},
 			Map: {
 				TileTypes: [],
-				Chunks: [{}, {}, {},{}, {}, {},	{}, {}, {}]
+				Chunks: {}
 			}
 		},
 	    DebugA: null,
@@ -76,16 +76,18 @@ CM.UIManager = function() {
 		},
 		InitMapTiles: function(tileSet) {
 			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
-				CM.State.Map.Chunks.each(function(chunk) {
+				for(var i in CM.State.Map.Chunks) {
+					var chunk = CM.State.Map.Chunks[i];
 					if(chunk.options && chunk.options.tileSet == tileSet._id) {
 						CM.UIManager.RedrawMap(chunk, tileSet);
 					}
-				});
+				}
 			});
 		},
 		Scroll: function(x, y) {
-			Crafty.viewport.x = (CM.Settings.xOffset - x)*CM.Settings.TileWidth;
-			Crafty.viewport.y = (CM.Settings.yOffset - y)*CM.Settings.TileWidth;
+			var map = CM.State.Map.Chunks[CM.State.Player.options.map];
+			Crafty.viewport.x = (map.x*map.width+CM.Settings.xOffset - x)*CM.Settings.TileWidth;
+			Crafty.viewport.y = (map.y*map.height+CM.Settings.yOffset - y)*CM.Settings.TileWidth;
 		},
 		RedrawMap: function(mapChunk, tileSet) {
 			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
@@ -195,7 +197,7 @@ CM.Map = new Class({
 CM.Map.extend({
 	onNew: function(data) {
 		var map = new CM.Map(data);
-		CM.State.Map.Chunks[(1+data.y)*3+data.x+1] = map; //middle in array is 0:0
+		CM.State.Map.Chunks[data._id] = map;
 
 		if(CM.NetMan.LoadedAssets[data.tileSet]) {
 			CM.UIManager.RedrawMap(map);

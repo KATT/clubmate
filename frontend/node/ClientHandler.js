@@ -29,10 +29,7 @@ var ClientHandler = new Class({
 	addClient : function(client) {
 		client.set('token', 'test');
 
-		var mapid = String(testPlayer.map);
-		var map = Map.findOne({_id: new ObjectId(mapid)}, function(err, map) {
-			console.log('id: ' + map._id + 'x: ' + map.x + 'y: ' + map.y)
-//			Map.find({x: {'$gte': map.x - 1, '$lte': map.x + 1}, y: {'$gte': map.y - 1, '$lte': map.y + 1}}).sort([['y', 'ascending'], ['x', 'descending']], function(err, maps) {
+		Map.findOne({_id: new ObjectId(String(testPlayer.map))}, function(err, map) {
 			Map.find({x: {'$gte': map.x - 1, '$lte': map.x + 1}, y: {'$gte': map.y - 1, '$lte': map.y + 1}}, function(err, maps) {
 				if (err) {
 					console.log('Map Error: ' + err);
@@ -56,14 +53,60 @@ var ClientHandler = new Class({
 		client.on('getTileSet', this.getTileSet.bind(this));
 	},
 	
-	movePlayer: function(response) {
+	movePlayer: function(req) {
 		//TODO: Token verification, timing check, collision check, binding with actual player, etc...
-		testPlayer.x = response.data.x;
-		testPlayer.y = response.data.y;
+		var player = testPlayer;
+		var targetX = req.data.x;
+		var targetY = req.data.y;
+		var ch = this;
+		Map.findOne({_id: new ObjectId(String(player.map))}, function(err, map) {
+			var newMap = {x: map.x, y: map.y};
+			if(targetX < 0) {
+				newMap.x--;
+			} else if(targetX >= map.width) {
+				newMap.x++;
+				player.x = 0;
+			}
+			if(targetY < 0) {
+				newMap.y--;
+			} else if(targetY >= map.height) {
+				newMap.y++;
+				player.y = 0;
+			}
+			if(Number(newMap.x) !== Number(map.x) || Number(newMap.y) !== Number(map.y)) {
+				console.log('New chunk!')
+				Map.findOne({x: newMap.x, y: newMap.y}, function(err, newMap) {
+					map.objects.remove(player._id);
+					map.onlinePlayers.remove(player._id);
+					map.save();
+					newMap.objects.push(player._id);
+					newMap.onlinePlayers.push(player._id);
+					newMap.save();
+					player.map = newMap._id;
+					
+					player.x = newMap.x < map.x ? newMap.width - 1 : player.x;
+					player.y = newMap.y < map.y ? newMap.height - 1 : player.y;
+					player.save();
+					ch.updatePlayer(player);
+					console.log('Player - x: ' + player.x + ', y: ' + player.y);
+					console.log('Map - x: ' + newMap.x + ', y: ' + newMap.y);
+				});
+			} else {
+				player.x = targetX;
+				player.y = targetY;
+				player.save();
+				ch.updatePlayer(player);
+				console.log('Player - x: ' + player.x + ', y: ' + player.y);
+				console.log('Map - x: ' + newMap.x + ', y: ' + newMap.y);
+			}
+		});
+	},
+	
+	updatePlayer: function(player) {
 		this.sockets.emit('stateUpdate', {
 			entityType: 'Player',
 			action: 'Update',
-			data: [testPlayer]
+			data: [ player ]
 		});
 	},
 	

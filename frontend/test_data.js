@@ -59,7 +59,7 @@ function createMaps(tileSet, player) {
 		tiles: [],
 		width: 40,
 		height: 28,
-		tileSet: tileSet		
+		tileSet: tileSet
 	};
 	
 	for(var x = -2; x <= 2; x++) {
