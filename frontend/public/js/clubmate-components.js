@@ -37,6 +37,21 @@ CM.Components = function() {
 								chunks[2].options.replace = chunks[5].options.replace = chunks[8].options.replace = true;
 								replaceChunks.combine([{x: mapX + 1, y: chunks[2].options.y}, {x: mapX + 1, y: chunks[5].options.y}, {x: mapX + 1, y: chunks[8].options.y}]);
 							}
+							if(!chunks[1].options.replace && mapY <= chunks[1].options.y && this.Object.options.y < CM.Settings.MapHeight - CM.Settings.CacheAhead) {
+								//Walking up
+								chunks = [	chunks[6], chunks[7], chunks[8],
+											chunks[0], chunks[1], chunks[2], 
+											chunks[3], chunks[4], chunks[5]];
+								chunks[0].options.replace = chunks[1].options.replace = chunks[2].options.replace = true;
+								replaceChunks.combine([{x: chunks[0].options.x, y: mapY - 1}, {x: chunks[1].options.x, y: mapY - 1}, {x: chunks[2].options.x, y: mapY - 1}]);
+							} else if(!chunks[7].options.replace && mapY >= CM.State.Map.Chunks[7].options.y && this.Object.options.y > CM.Settings.CacheAhead) {
+								//Walking down
+								chunks = [	chunks[3], chunks[4], chunks[5],
+											chunks[6], chunks[7], chunks[8], 
+											chunks[0], chunks[1], chunks[2]];
+								chunks[6].options.replace = chunks[7].options.replace = chunks[8].options.replace = true;
+								replaceChunks.combine([{x: chunks[6].options.x, y: mapY + 1}, {x: chunks[7].options.x, y: mapY + 1}, {x: chunks[8].options.x, y: mapY + 1}]);
+							}
 							CM.State.Map.Chunks = chunks;
 							if(replaceChunks.length > 0) {
 								CM.NetMan.Send('getMaps', replaceChunks);
