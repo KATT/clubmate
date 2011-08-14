@@ -17,6 +17,31 @@ CM.Components = function() {
 						} else if(Crafty.viewport.y < yPos) {
 							Crafty.viewport.y++;
 						}
+						if(CM.State.Map.Chunks.length == 9) {
+							var replaceChunks = [];
+							var chunks = CM.State.Map.Chunks;
+							var mapX = this.Object.options.mapX;
+							var mapY = this.Object.options.mapY;
+							if(!chunks[3].options.replace && mapX <= chunks[3].options.x && this.Object.options.x < CM.Settings.MapWidth - CM.Settings.CacheAhead) {
+								//Walking west
+								chunks = [	chunks[2], chunks[0], chunks[1],
+											chunks[5], chunks[3], chunks[4], 
+											chunks[8], chunks[6], chunks[7]];
+								chunks[0].options.replace = chunks[3].options.replace = chunks[6].options.replace = true;
+								replaceChunks.combine([{x: mapX - 1, y: chunks[0].options.y}, {x: mapX - 1, y: chunks[3].options.y}, {x: mapX - 1, y: chunks[6].options.y}]);
+							} else if(!chunks[5].options.replace && mapX >= CM.State.Map.Chunks[5].options.x && this.Object.options.x > CM.Settings.CacheAhead) {
+								//Walking east
+								chunks = [	chunks[1], chunks[2], chunks[0],
+											chunks[4], chunks[5], chunks[3], 
+											chunks[7], chunks[8], chunks[6]];
+								chunks[2].options.replace = chunks[5].options.replace = chunks[8].options.replace = true;
+								replaceChunks.combine([{x: mapX + 1, y: chunks[2].options.y}, {x: mapX + 1, y: chunks[5].options.y}, {x: mapX + 1, y: chunks[8].options.y}]);
+							}
+							CM.State.Map.Chunks = chunks;
+							if(replaceChunks.length > 0) {
+								CM.NetMan.Send('getMaps', replaceChunks);
+							}
+						}
 					});
 				}
 			});

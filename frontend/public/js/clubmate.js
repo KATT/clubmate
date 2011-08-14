@@ -15,7 +15,7 @@ var CM = function() {
 			Objects: {},
 			Map: {
 				TileTypes: [],
-				Chunks: {}
+				Chunks: []
 			}
 		},
 	    DebugA: null,
@@ -76,30 +76,35 @@ CM.UIManager = function() {
 		},
 		InitMapTiles: function(tileSet) {
 			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
-				for(var i in CM.State.Map.Chunks) {
-					var chunk = CM.State.Map.Chunks[i];
+				CM.State.Map.Chunks.each(function(chunk) {
 					if(chunk.options && chunk.options.tileSet == tileSet._id) {
 						CM.UIManager.RedrawMap(chunk, tileSet);
 					}
-				}
+				});
 			});
 		},
 		Scroll: function(x, y) {
-			var map = CM.State.Map.Chunks[CM.State.Player.options.map];
-			if(typeof map != 'undefined') {
-				Crafty.viewport.x = (map.x*map.width+CM.Settings.xOffset - x)*CM.Settings.TileWidth;
-				Crafty.viewport.y = (map.y*map.height+CM.Settings.yOffset - y)*CM.Settings.TileWidth;
-			}
+			Crafty.viewport.x = (CM.Settings.xOffset - x - CM.State.Player.options.mapX*CM.Settings.MapWidth)*CM.Settings.TileWidth;
+			Crafty.viewport.y = (CM.Settings.yOffset - y - CM.State.Player.options.mapY*CM.Settings.MapHeight)*CM.Settings.TileWidth;
 		},
 		RedrawMap: function(mapChunk, tileSet) {
 			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
 				Crafty.sprite(CM.Settings.TileWidth, CM.Settings.TilePath + tileSet.url, tileSet.data);
 				var my = mapChunk.options.y*CM.Settings.TileHeight*mapChunk.options.height;
 				var mx = mapChunk.options.x*CM.Settings.TileWidth*mapChunk.options.width;
-				for (var x = 0; x < mapChunk.options.width; x++) {
-					for(var y = 0; y < mapChunk.options.height; y++) {
-						var tileType = tileSet.tileTypes[mapChunk.options.tiles[x + (y)*mapChunk.options.width]]; //TODO: Right index based on player position and shit
-						Crafty.e('2D, Canvas, ' + tileType).attr({x: mx + x*CM.Settings.TileWidth, y: my + y*CM.Settings.TileHeight, z:0});//.css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
+				for(var y = 0; y < mapChunk.options.height; y++) {
+					for (var x = 0; x < mapChunk.options.width; x++) {
+						var tileType = tileSet.tileTypes[mapChunk.options.tiles[x + y*mapChunk.options.width]]; //TODO: Right index based on player position and shit
+						var e;
+						if(mapChunk.tileEntities[x + y*mapChunk.options.width]) {
+							e = mapChunk.tileEntities[x + y*mapChunk.options.width];
+							e.__c = [];
+						} else {
+							e = Crafty.e();
+							mapChunk.tileEntities[x + y*mapChunk.options.width] = e;
+						}
+						e.addComponent('2D, Canvas, ' + tileType);
+						e.attr({x: mx + x*CM.Settings.TileWidth, y: my + y*CM.Settings.TileHeight, z:0});//.css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
 					}
 				}
 			});
@@ -111,7 +116,7 @@ CM.NetMan = function() {
 	var Socket = null;
 	
 	return {
-		LoadedAssets: [],
+		LoadedAssets: {},
 		LoadingAssets: [],
 		Init: function () {
 			Socket = io.connect(CM.Settings.SocketURL);
@@ -125,7 +130,7 @@ CM.NetMan = function() {
 						CM.UIManager.InitMapTiles(response);
 						break;
 				}
-				CM.NetMan.LoadedAssets.push(response._id);
+				CM.NetMan.LoadedAssets[response._id] = response;
 				CM.NetMan.LoadingAssets.erase(response._id);
 			});
 			Socket.on('stateUpdate', function (response) {
@@ -190,19 +195,38 @@ CM.Map = new Class({
 		x: 0,
 		y: 0,
 		width: 0,
-		height: 0
+		height: 0,
 	},
 	initialize: function(data) {
+		this.tileEntities = [];
 		this.setOptions(data);
-	}	
+		this.options.replace = false;
+	},
+	update: function(data) {
+		this.options.replace = false;
+		this.options.tiles = data.tiles;
+		this.options.x = data.x;
+		this.options.y = data.y;
+		this.options.tileSet = data.tileSet;
+		this.options.objects = data.objects;
+		this.options._id = data._id;
+	}
 });
 CM.Map.extend({
 	onNew: function(data) {
-		var map = new CM.Map(data);
-		CM.State.Map.Chunks[data._id] = map;
-
+		var index = (1+data.y - CM.State.Player.options.mapY )*3+data.x+1 - CM.State.Player.options.mapX;
+		var map;
+		if(CM.State.Map.Chunks[index]) {
+			map = CM.State.Map.Chunks[index];
+			if(map.options.replace) {
+				map.update(data);
+			}
+		} else {
+			map = new CM.Map(data);
+			CM.State.Map.Chunks[index] = map;
+		}
 		if(CM.NetMan.LoadedAssets[data.tileSet]) {
-			CM.UIManager.RedrawMap(map);
+			CM.UIManager.RedrawMap(map, CM.NetMan.LoadedAssets[data.tileSet]);
 		} else {
 			CM.NetMan.GetTileSet(data.tileSet);
 		}

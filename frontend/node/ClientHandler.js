@@ -29,33 +29,30 @@ var ClientHandler = new Class({
 	
 	addClient : function(client) {
 		client.set('token', 'test');
-
-		Map.findOne({_id: new ObjectId(String(testPlayer.map))}, function(err, map) {
+		var player = testPlayer;
+		var mapQuery = Map.find({x: {'$gte': player.mapX - 1, '$lte': player.mapX + 1}, y: {'$gte': player.mapY - 1, '$lte': player.mapY + 1}});
+		mapQuery.sort('y', 1, 'x', 1);
+		mapQuery.exec(function(err, maps) {
 			if (err) {
 				console.log('Map Error: ' + err);
 				throw err;
 			}
-			Map.find({x: {'$gte': map.x - 1, '$lte': map.x + 1}, y: {'$gte': map.y - 1, '$lte': map.y + 1}}, function(err, maps) {
-				if (err) {
-					console.log('Map Error: ' + err);
-					throw err;
-				}
-				client.emit('stateUpdate', {
-					entityType: 'Map',
-					action: 'New',
-					data: maps
-				});
+			client.emit('stateUpdate', {
+				entityType: 'Map',
+				action: 'New',
+				data: maps
 			});
 		});
+		
 		client.emit('stateUpdate', {
 			entityType: 'Player',
 			action: 'New',
-			data: [testPlayer]
+			data: [ player ]
 		});
-		
 		//Get map chunk for player x & y
 		client.on('movePlayer', this.movePlayer.bind(this));
 		client.on('getTileSet', this.getTileSet.bind(this));
+		client.on('getMaps', this.getMaps.bind(this));
 	},
 	
 	movePlayer: function(req) {
@@ -129,6 +126,22 @@ var ClientHandler = new Class({
 				});
 		} catch(err) {
 			console.log('getTileSet Error: ' + err);
+		}
+	},
+	
+	getMaps: function(req) {
+		try {
+			var client = this;
+			//SECURITY: Sanitize query!
+			Map.find({'$or': req.data}, function(err, maps) {
+				client.sockets.emit('stateUpdate', {
+					entityType: 'Map',
+					action: 'New',
+					data: maps
+				});
+			})
+		} catch(err) {
+			console.log('getMaps Error: ' + err);
 		}
 	}
 });

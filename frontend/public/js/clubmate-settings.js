@@ -13,7 +13,8 @@ CM.Settings = {
 	TilePath: '/images/',
 	SpritePath: '/images/',
 	MapWidth: 40,
-	MapHeight: 28
+	MapHeight: 28,
+	CacheAhead: 5 //How many tiles the player has to move in to a chunk to start loading the adjacent ones
 };
 
 

@@ -64,9 +64,9 @@ function createMaps(tileSet, player) {
 		tileSet: tileSet
 	};
 	
-	for(var x = -2; x <= 2; x++) {
-		for(var y=-2; y <=2 ; y++) {
-			var t = ((y+2)+(5*(x+2))) % 12;
+	for(var x = -4; x <= 4; x++) {
+		for(var y=-4; y <=4 ; y++) {
+			var t = ((y+4)+(9*(x+4))) % 12;
 			var m = new Map(mapData);
 			m.x = x;
 			m.y = y;
