@@ -9,7 +9,7 @@ CM.Settings = {
 	yOffset: 7,
 	TileWidth: 24,
 	TileHeight: 24,
-	FPS: 50,
+	FPS: 25,
 	TilePath: '/images/',
 	SpritePath: '/images/',
 	MapWidth: 40,

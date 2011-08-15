@@ -2,6 +2,7 @@ var CM = function() {
 	var Init = function() {
 		CM.UIManager.InitUI();
 		CM.Components.Init();
+		CM.Engine.Init();
 		CM.NetMan.Init();
 	};
 	return {
@@ -86,9 +87,11 @@ CM.UIManager = function() {
 		Scroll: function(x, y) {
 			Crafty.viewport.x = (CM.Settings.xOffset - x - CM.State.Player.options.mapX*CM.Settings.MapWidth)*CM.Settings.TileWidth;
 			Crafty.viewport.y = (CM.Settings.yOffset - y - CM.State.Player.options.mapY*CM.Settings.MapHeight)*CM.Settings.TileWidth;
+			CM.Engine.Scroll(x, y);
 		},
 		RedrawMap: function(mapChunk, tileSet) {
-			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
+			CM.Engine.RedrawMap(mapChunk, tileSet);
+			/*loadAsset(CM.Settings.TilePath + tileSet.url, function() {
 				Crafty.sprite(CM.Settings.TileWidth, CM.Settings.TilePath + tileSet.url, tileSet.data);
 				var my = mapChunk.options.y*CM.Settings.TileHeight*mapChunk.options.height;
 				var mx = mapChunk.options.x*CM.Settings.TileWidth*mapChunk.options.width;
@@ -107,7 +110,7 @@ CM.UIManager = function() {
 						e.attr({x: mx + x*CM.Settings.TileWidth, y: my + y*CM.Settings.TileHeight, z:0});//.css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
 					}
 				}
-			});
+			});*/
 		},
 	};
 }();
@@ -127,7 +130,7 @@ CM.NetMan = function() {
 						CM.UIManager.InitSpriteMap(tileSize, response.url, response.data);
 						break;
 					case CM.Enums.AssetTypes.MapTiles:
-						CM.UIManager.InitMapTiles(response);
+						CM.Engine.InitMapTiles(response);
 						break;
 				}
 				CM.NetMan.LoadedAssets[response._id] = response;
