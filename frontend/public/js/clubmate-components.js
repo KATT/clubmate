@@ -67,8 +67,8 @@ CM.Components = function() {
 					this.attr({w: CM.Settings.TileWidth, h: CM.Settings.TileHeight, z: 2});
 					//this.animate('walk_right', [[120,8], [96,8], [120,8], [72,8]]);
 					this.bind('EnterFrame', function() {
-						var xOffset = CM.State.Player.options.mapX*CM.Settings.MapWidth;
-						var yOffset = CM.State.Player.options.mapY*CM.Settings.MapHeight;
+						var xOffset = this.Object.options.mapX*CM.Settings.MapWidth;
+						var yOffset = this.Object.options.mapY*CM.Settings.MapHeight;
 						var targetX = (this.Object.options.x + xOffset) * CM.Settings.TileWidth;
 						var targetY = (this.Object.options.y + yOffset) * CM.Settings.TileHeight;
 						if(this.y != targetY || this.x != targetX) {

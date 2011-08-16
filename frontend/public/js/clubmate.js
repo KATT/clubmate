@@ -211,7 +211,7 @@ CM.Object = new Class({
 });
 CM.Object.extend({
 	onNew: function(data) {
-		data.components = 'gameSprite, ' + data.sprite.key
+		data.components = 'animate, gameSprite, ' + data.sprite.key
 		var obj = new CM.Object(data);
 		CM.State.Objects[obj.options._id] = obj;
 		if(CM.NetMan.LoadedAssets[data.sprite.tileSet]) {
