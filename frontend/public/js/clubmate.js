@@ -171,13 +171,13 @@ CM.Map = new Class({
 CM.Map.extend({
 	onNew: function(data) {
 		var index;
+		var map;
 		var mChunk = CM.State.Map.Chunks[4];
 		if (mChunk) {
 			index = (1+data.y - mChunk.options.y )*3+data.x+1 - mChunk.options.x;
 		} else {
 			index = (1+data.y - CM.State.Player.options.mapY )*3+data.x+1 - CM.State.Player.options.mapX;
 		}
-		var map;
 		if(CM.State.Map.Chunks[index]) {
 			map = CM.State.Map.Chunks[index];
 			if(map.options.replace) {
