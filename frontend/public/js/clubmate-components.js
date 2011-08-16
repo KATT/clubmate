@@ -87,8 +87,8 @@ CM.Components = function() {
 				},
 				
 				UpdatePosition: function() {
-					this.x = (this.Object.options.x + CM.State.Player.options.mapX*CM.Settings.MapWidth)* CM.Settings.TileWidth;
-					this.y = (this.Object.options.y + CM.State.Player.options.mapY*CM.Settings.MapHeight)* CM.Settings.TileHeight;
+					this.x = (this.Object.options.x + this.Object.options.mapX*CM.Settings.MapWidth)* CM.Settings.TileWidth;
+					this.y = (this.Object.options.y + this.Object.options.mapY*CM.Settings.MapHeight)* CM.Settings.TileHeight;
 				}
 			});
 		}
