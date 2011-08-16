@@ -2,8 +2,8 @@ var CM = function() {
 	var Init = function() {
 		CM.UIManager.InitUI();
 		CM.Components.Init();
-		CM.Engine.Init();
 		CM.NetMan.Init();
+		CM.Engine.Init();
 	};
 	return {
 		Components: {},
@@ -113,10 +113,9 @@ CM.NetMan = function() {
 
 CM.Player = new Class({
 	Implements: [Options, Events],
+	Inherits: CM.Object,
 	options: {
 		alias: 'Anon',
-		x: 0,
-		y: 0,
 		onUpdate: function(options) {
 			//When player update is received. Just to make it more general and apply a base class to other players than self in the future.
 			this.setOptions(options);
@@ -126,6 +125,7 @@ CM.Player = new Class({
 		this.setOptions(options);
 	},
 });
+
 CM.Player.extend({
 	onNew: function(data) {
 		data.components = data.sprite.key + ', player'
@@ -142,7 +142,7 @@ CM.Player.extend({
 	onUpdate: function(data) {
 		CM.State.Player.fireEvent('update', data);
 	}
-})
+});
 
 CM.Map = new Class({
 	Implements: [Options, Events],
@@ -192,6 +192,43 @@ CM.Map.extend({
 		}
 	},
 	onUpdate: function(data) {}
+});
+
+
+CM.Object = new Class({
+	Implements: [Options, Events],
+	options: {
+		x: 0,
+		y: 0,
+		onUpdate: function(options) {
+			//When player update is received. Just to make it more general and apply a base class to other players than self in the future.
+			this.setOptions(options);
+		}
+	},
+	initialize: function(options) {
+		this.setOptions(options);
+	},
+});
+CM.Object.extend({
+	onNew: function(data) {
+		data.components = 'gameSprite, ' + data.sprite.key
+		var obj = new CM.Object(data);
+		CM.State.Objects[obj.options._id] = obj;
+		if(CM.NetMan.LoadedAssets[data.sprite.tileSet]) {
+			CM.UIManager.InitEntityForObject(obj);
+		} else {
+			CM.NetMan.GetTileSet(data.sprite.tileSet);
+		}
+		//CM.UIManager.Scroll(player.options.x, player.options.y);
+	},
+	onUpdate: function(data) {
+		var obj = CM.State.Objects[data._id];
+		if(obj) {
+			obj.fireEvent('update', data);
+		} else {
+			CM.Object.onNew(data);
+		}
+	}
 });
 
 CM.Scenes = function() {

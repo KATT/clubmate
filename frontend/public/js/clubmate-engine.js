@@ -50,6 +50,12 @@ CM.Engine = function() {
 		gameTimer: undefined,
 		context: undefined,
 		Init: function() {
+			var alias;// = Cookie.read('alias');
+			if(alias == undefined) {
+				alias = prompt('Hey there, you look like a fresh face! What is your handle?');
+				Cookie.write('alias', alias, {duration: 364});
+			}
+			CM.NetMan.Send('login', {alias: alias, password: ''});
 			var width = CM.Settings.ViewWidth*CM.Settings.TileWidth;
 			var height = CM.Settings.ViewHeight*CM.Settings.TileHeight;
 			var canvas = document.id('canvas');

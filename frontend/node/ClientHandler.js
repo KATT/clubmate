@@ -10,12 +10,8 @@ var ObjectId = require('mongoose').Types.ObjectId;
 var settings = require('../public/js/clubmate-settings.js')
 
 var ch; 
-var testPlayer;
 GameState.findOne(function(err, gs) {
 	gameState = gs;
-});
-Player.findOne(function(err, p) {
-	testPlayer = p;
 });
 
 var ClientHandler = new Class({
@@ -28,36 +24,83 @@ var ClientHandler = new Class({
 		ch.sockets.on('connection', ch.addClient);
 	},
 	
-	addClient : function(client) {
-		var player = testPlayer;
-		client.set('player', player, function() {
-			var mapQuery = Map.find({x: {'$gte': player.mapX - 1, '$lte': player.mapX + 1}, y: {'$gte': player.mapY - 1, '$lte': player.mapY + 1}});
-			mapQuery.sort('y', 1, 'x', 1);
-			mapQuery.exec(function(err, maps) {
-				if (err) {
-					console.log('Map Error: ' + err);
-					throw err;
-				}
-				client.emit('stateUpdate', {
-					entityType: 'Map',
-					action: 'New',
-					data: maps
+	login: function(req) {
+		var client = this;
+		var alias = req.data.alias;
+		Player.findOne({alias: alias}, function(err, player) {
+			if (err) {
+				console.log('Login Error: ' + err);
+				throw err;
+			}
+			
+			var onPlayer = function(player) {
+				client.set('player', player, function() {
+					var mapQuery = Map.find({x: {'$gte': player.mapX - 1, '$lte': player.mapX + 1}, y: {'$gte': player.mapY - 1, '$lte': player.mapY + 1}});
+					mapQuery.sort('y', 1, 'x', 1);
+					mapQuery.exec(function(err, maps) {
+						if (err) {
+							console.log('Map Error: ' + err);
+							throw err;
+						}
+						client.emit('stateUpdate', {
+							entityType: 'Map',
+							action: 'New',
+							data: maps
+						});
+						maps.each(function(map) {
+							client.join(map.roomID);
+						});
+					});
+					client.emit('stateUpdate', {
+						entityType: 'Player',
+						action: 'New',
+						data: [ player ]
+					});
+					ch.updatePlayer(player, client); //TODO: Data sent twice to the current player
+					//Get map chunk for player x & y
+					client.on('movePlayer', ch.movePlayer);
+					client.on('getTileSet', ch.getTileSet);
+					client.on('getMaps', ch.getMaps);
 				});
-				maps.each(function(map) {
-					client.join(map.roomID);
+			};
+
+			if(player) {
+				onPlayer(player);
+			} else {
+				//Create new ad-hoc player
+				console.log('New player!')
+				TileSet.findOne({type: 0}, function(err, tileSet) {
+					console.log('BAJS');
+					Map.findOne({x: 0, y: 0}, function(err, map) {
+						console.log('map: ' + map);
+						var sprite = new Sprite({
+							key: 'policeSprite',
+							tileSet: tileSet
+						});
+						player = new Player({
+							alias: alias,
+							password: 'uhiuh',
+							x: 10,
+							y: 12,
+							targetX: 10,
+							targetY: 12,
+							sprite: sprite,
+							map: map,
+							mapX: 0,
+							mapY: 0
+						});
+						player.save();
+						map.objects.push(player);
+						map.save();
+						console.log('player: ' + player);
+						onPlayer(player);
+					});
 				});
-			});
-			client.emit('stateUpdate', {
-				entityType: 'Player',
-				action: 'New',
-				data: [ player ]
-			});
-			ch.updatePlayer(player); //TODO: Data sent twice to the current player
-			//Get map chunk for player x & y
-			client.on('movePlayer', ch.movePlayer);
-			client.on('getTileSet', ch.getTileSet);
-			client.on('getMaps', ch.getMaps);
+			}
 		});
+	},
+	addClient : function(client) {
+		client.on('login', ch.login);
 	},
 	
 	movePlayer: function(req) {
@@ -94,7 +137,7 @@ var ClientHandler = new Class({
 						player.mapX = newMap.x;
 						player.mapY = newMap.y;
 						player.save();
-						ch.updatePlayer(player);
+						ch.updatePlayer(player, client);
 						console.log('Player - x: ' + player.x + ', y: ' + player.y);
 						console.log('Map - x: ' + newMap.x + ', y: ' + newMap.y);
 					});
@@ -103,21 +146,26 @@ var ClientHandler = new Class({
 				player.x = targetX;
 				player.y = targetY;
 				player.save();
-				ch.updatePlayer(player);
+				ch.updatePlayer(player, client);
 				console.log('Player - x: ' + player.x + ', y: ' + player.y);
 				console.log('Map - x: ' + player.mapX + ', y: ' + player.mapY);
 			}
 		});
 	},
 	
-	updatePlayer: function(player) {
+	updatePlayer: function(player, client) {
 		ch.sockets.in(Map.getRoomID(player.mapX, player.mapY)).emit('stateUpdate', {
+			entityType: 'Object',
+			action: 'Update',
+			data: [ player ]
+		});
+		client.emit('stateUpdate', {
 			entityType: 'Player',
 			action: 'Update',
 			data: [ player ]
 		});
 	},
-	
+
 	getTileSet: function(req) {
 		var client = this;
 		try {
