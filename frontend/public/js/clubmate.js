@@ -34,31 +34,17 @@ CM.UIManager = function() {
 			onLoaded();
 		}
 	};
-	var movePlayer = function(dx, dy) {
-		CM.NetMan.Send('movePlayer', { x: CM.State.Player.options.x + dx, y: CM.State.Player.options.y + dy });
-	};
 
 	return {
 		InitUI: function() {
 			var width = CM.Settings.ViewWidth*CM.Settings.TileWidth;
 			var height = CM.Settings.ViewHeight*CM.Settings.TileHeight;
 			Crafty.init(width, height);
-			Crafty.canvas.init();
-			Crafty.background(CM.Settings.BackgroundColor);
+			Crafty.background('transparent');
 			Crafty.scene('main', CM.Scenes.Main);
 			Crafty.scene('main');
 			Crafty.viewport.x = CM.Settings.xOffset*CM.Settings.TileWidth;
 			Crafty.viewport.y = CM.Settings.yOffset*CM.Settings.TileHeight;
-			
-			var keyboardListener = new Keyboard({
-				active: true
-			});
-			keyboardListener.addEvents({
-			    'up': function() { movePlayer(0, -1); },
-			    'down': function() { movePlayer(0, 1); },
-			    'left': function() { movePlayer(-1, 0); },
-			    'right': function() { movePlayer(1, 0); },
-			});
 		},
 		InitEntityForObject: function(obj) {
 			var e = Crafty.e(obj.options.components);
@@ -75,43 +61,10 @@ CM.UIManager = function() {
 				}
 			}
 		},
-		InitMapTiles: function(tileSet) {
-			loadAsset(CM.Settings.TilePath + tileSet.url, function() {
-				CM.State.Map.Chunks.each(function(chunk) {
-					if(chunk.options && chunk.options.tileSet == tileSet._id) {
-						CM.UIManager.RedrawMap(chunk, tileSet);
-					}
-				});
-			});
-		},
 		Scroll: function(x, y) {
 			Crafty.viewport.x = (CM.Settings.xOffset - x - CM.State.Player.options.mapX*CM.Settings.MapWidth)*CM.Settings.TileWidth;
 			Crafty.viewport.y = (CM.Settings.yOffset - y - CM.State.Player.options.mapY*CM.Settings.MapHeight)*CM.Settings.TileWidth;
-			CM.Engine.Scroll(x, y);
-		},
-		RedrawMap: function(mapChunk, tileSet) {
-			CM.Engine.RedrawMap(mapChunk, tileSet);
-			/*loadAsset(CM.Settings.TilePath + tileSet.url, function() {
-				Crafty.sprite(CM.Settings.TileWidth, CM.Settings.TilePath + tileSet.url, tileSet.data);
-				var my = mapChunk.options.y*CM.Settings.TileHeight*mapChunk.options.height;
-				var mx = mapChunk.options.x*CM.Settings.TileWidth*mapChunk.options.width;
-				for(var y = 0; y < mapChunk.options.height; y++) {
-					for (var x = 0; x < mapChunk.options.width; x++) {
-						var tileType = tileSet.tileTypes[mapChunk.options.tiles[x + y*mapChunk.options.width]]; //TODO: Right index based on player position and shit
-						var e;
-						if(mapChunk.tileEntities[x + y*mapChunk.options.width]) {
-							e = mapChunk.tileEntities[x + y*mapChunk.options.width];
-							e.__c = [];
-						} else {
-							e = Crafty.e();
-							mapChunk.tileEntities[x + y*mapChunk.options.width] = e;
-						}
-						e.addComponent('2D, Canvas, ' + tileType);
-						e.attr({x: mx + x*CM.Settings.TileWidth, y: my + y*CM.Settings.TileHeight, z:0});//.css({top: y*CM.Settings.TileHeight + 'px', left: x*CM.Settings.TileWidth + 'px'});
-					}
-				}
-			});*/
-		},
+		}
 	};
 }();
 
@@ -217,7 +170,13 @@ CM.Map = new Class({
 });
 CM.Map.extend({
 	onNew: function(data) {
-		var index = (1+data.y - CM.State.Player.options.mapY )*3+data.x+1 - CM.State.Player.options.mapX;
+		var index;
+		var mChunk = CM.State.Map.Chunks[4];
+		if (mChunk) {
+			index = (1+data.y - mChunk.options.y )*3+data.x+1 - mChunk.options.x;
+		} else {
+			index = (1+data.y - CM.State.Player.options.mapY )*3+data.x+1 - CM.State.Player.options.mapX;
+		}
 		var map;
 		if(CM.State.Map.Chunks[index]) {
 			map = CM.State.Map.Chunks[index];
@@ -228,9 +187,7 @@ CM.Map.extend({
 			map = new CM.Map(data);
 			CM.State.Map.Chunks[index] = map;
 		}
-		if(CM.NetMan.LoadedAssets[data.tileSet]) {
-			CM.UIManager.RedrawMap(map, CM.NetMan.LoadedAssets[data.tileSet]);
-		} else {
+		if(!CM.NetMan.LoadedAssets[data.tileSet]) {
 			CM.NetMan.GetTileSet(data.tileSet);
 		}
 	},

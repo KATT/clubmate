@@ -5,20 +5,45 @@ CM.Engine = function() {
 		tsImage.src = CM.Settings.TilePath + url;
 	};
 	var movePlayer = function(dx, dy) {
-		CM.NetMan.Send('movePlayer', { x: CM.State.Player.options.x + dx, y: CM.State.Player.options.y + dy });
+		var targetX = CM.State.Player.options.x + dx;
+		var targetY = CM.State.Player.options.y + dy;
+		var tMapX = CM.State.Player.options.mapX;
+		var tMapY = CM.State.Player.options.mapY;
+		if(targetX >= CM.Settings.MapWidth) {
+			targetX -= CM.Settings.MapWidth;
+			tMapX++;
+		} else if (targetX < 0) {
+			targetX += CM.Settings.MapWidth;
+			tMapX--;
+		}
+		if(targetY >= CM.Settings.MapHeight) {
+			targetY -= CM.Settings.MapHeight;
+			tMapY++;
+		} else if (targetY < 0) {
+			targetY += CM.Settings.MapHeight;
+			tMapY--;
+		}
+		CM.NetMan.Send('movePlayer', { x: targetX, y: targetY, mapX: tMapX, mapY: tMapY });
 	};
 	var gameLoop = function() {
 		drawFrame();
 	};
 	var drawFrame = function() {
-		//CM.Engine.context.save();
 		CM.Engine.context.clearRect(0-CM.Settings.xOffset*CM.Settings.TileWidth, 0-CM.Settings.yOffset *CM.Settings.TileHeight, CM.Settings.ViewWidth*CM.Settings.TileWidth, CM.Settings.ViewHeight*CM.Settings.TileHeight);
-		//CM.Engine.context.restore();
-		
 		CM.State.Map.Chunks.each(function(chunk){
 			CM.Engine.RedrawMap(chunk);
 		});
-		
+		try {
+			var status = document.id('status');
+			var message = '<table id="messageTable"><tr><td>Player</td><td>{x: '+CM.State.Player.options.x+', y: '+CM.State.Player.options.y+'}</td></tr><tr><td>Map</td><td>{x: '+CM.State.Player.options.mapX+', y: '+CM.State.Player.options.mapY+'}</td></tr><tr>'; 
+			CM.State.Map.Chunks.each(function(chunk, index) {
+				message += '<td>' + index + ': {x: '+chunk.options.x+', y: '+chunk.options.y+'}</td>';
+				if((index+1)%3 == 0) {
+					message += '</tr><tr>'
+				}
+			});
+			status.innerHTML = message + '</tr></table>';
+		} catch(err) {}
 	};
 	return {
 		frameCount : 0,
@@ -32,12 +57,6 @@ CM.Engine = function() {
 			canvas.height = height;
 			CM.Engine.context = canvas.getContext('2d');
 			this.context.translate(CM.Settings.xOffset * CM.Settings.TileWidth, CM.Settings.yOffset * CM.Settings.TileHeight);
-			/*Crafty.init(width, height);
-			Crafty.background(CM.Settings.BackgroundColor);
-			Crafty.scene('main', CM.Scenes.Main);
-			Crafty.scene('main');
-			Crafty.viewport.x = CM.Settings.xOffset*CM.Settings.TileWidth;
-			Crafty.viewport.y = CM.Settings.yOffset*CM.Settings.TileHeight;*/
 			var interval = 1000 / CM.Settings.FPS;
 			CM.Engine.gameTimer = setInterval(gameLoop, interval);
 			var keyboardListener = new Keyboard({
@@ -50,42 +69,14 @@ CM.Engine = function() {
 			    'right': function() { movePlayer(1, 0); },
 			});
 		},
-		InitEntityForObject: function(obj) {
-			var e = Crafty.e(obj.options.components);
-			e.Object = obj;
-			obj.Entity = e;
-			e.UpdatePosition();
-		},
-		InitSpriteMap: function(tileSize, url, spriteMap) {
-			Crafty.sprite(tileSize, CM.Settings.SpritePath + url, spriteMap);
-			for(var i in CM.State.Objects) {
-				var obj = CM.State.Objects[i];
-				if(typeof obj.Entity == 'undefined') {
-					CM.UIManager.InitEntityForObject(obj);
-				}
-			}
-		},
 		InitMapTiles: function(tileSet) {
 			loadAsset(tileSet.url, function() {
 				CM.NetMan.LoadedAssets[tileSet._id].image = this;
-				
-				CM.State.Map.Chunks.each(function(chunk) {
-					if(chunk.options && chunk.options.tileSet == tileSet._id) {
-						CM.UIManager.RedrawMap(chunk, tileSet);
-					}
-				});
 			});
 		},
-		Scroll: function(x, y) {
-			/*sx = (CM.Settings.xOffset - x - CM.State.Player.options.mapX*CM.Settings.MapWidth)*CM.Settings.TileWidth;
-			sy = (CM.Settings.yOffset - y - CM.State.Player.options.mapY*CM.Settings.MapHeight)*CM.Settings.TileWidth;
-			CM.Engine.context.moveTo(sx, sy);
-			CM.Engine.context.save();*/
-		},
 		RedrawMap: function(mapChunk) {
-			//Crafty.sprite(CM.Settings.TileWidth, CM.Settings.TilePath + tileSet.url, tileSet.data);
 			var tileSet = CM.NetMan.LoadedAssets[mapChunk.options.tileSet];
-			if(tileSet.image) {
+			if(tileSet && tileSet.image) {
 				var my = mapChunk.options.y*CM.Settings.TileHeight*mapChunk.options.height;
 				var mx = mapChunk.options.x*CM.Settings.TileWidth*mapChunk.options.width;
 				for(var y = 0; y < mapChunk.options.height; y++) {

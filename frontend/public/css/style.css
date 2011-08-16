@@ -143,5 +143,23 @@ a:hover { color: #036; }
 
 canvas#canvas {
 	border: 1px dotted #f06;
-	margin-left: 100px;
+	top: 0;
+	left: 0;
+	position: absolute;
+	z-index: 1;
+}
+#cr-stage {
+	top: 0;
+	left: 0;
+	position: absolute;
+	z-index: 2;
+}
+div#status {
+	border: 1px dotted black;
+	position: absolute;
+	top: 350px;
+	left: 10px;
+}
+#messageTable td {
+	padding: 10px;
 }

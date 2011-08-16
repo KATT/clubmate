@@ -56,27 +56,19 @@ var ClientHandler = new Class({
 	},
 	
 	movePlayer: function(req) {
-		//TODO: Token verification, timing check, collision check, binding with actual player, etc...
+		//TODO: Token verification, sintize, timing check, collision check, binding with actual player, etc...
 		var player = testPlayer;
 		var targetX = req.data.x;
 		var targetY = req.data.y;
+		var tMapX = req.data.mapX;
+		var tMapY = req.data.mapY;
 		var ch = this;
-		var newMap = {x: player.mapX, y: player.mapY};
-		if(targetX < 0) {
-			newMap.x--;
-		} else if(targetX >= settings.MapWidth) {
-			newMap.x++;
-			player.x = 0;
+		if(targetX < 0 || targetX >= settings.MapWidth || targetY < 0 || targetY >= settings.MapHeight) {
+			return;
 		}
-		if(targetY < 0) {
-			newMap.y--;
-		} else if(targetY >= settings.MapHeight) {
-			newMap.y++;
-			player.y = 0;
-		}
-		if(Number(newMap.x) !== Number(player.mapX) || Number(newMap.y) !== Number(player.mapY)) {
+		if(tMapX !== Number(player.mapX) || tMapY !== Number(player.mapY)) {
 			Map.findOne({_id: new ObjectId(String(player.map))}, function(err, oldMap) {
-				Map.findOne({x: newMap.x, y: newMap.y}, function(err, newMap) {
+				Map.findOne({x: tMapX, y: tMapY}, function(err, newMap) {
 					console.log('New chunk!')
 					oldMap.objects.remove(player._id);
 					oldMap.onlinePlayers.remove(player._id);
@@ -86,8 +78,10 @@ var ClientHandler = new Class({
 					newMap.save();
 					player.map = newMap._id;
 					
-					player.x = newMap.x < oldMap.x ? settings.MapWidth - 1 : player.x;
-					player.y = newMap.y < oldMap.y ? settings.MapHeight - 1 : player.y;
+					//player.x = newMap.x < oldMap.x ? settings.MapWidth - 1 : player.x;
+					//player.y = newMap.y < oldMap.y ? settings.MapHeight - 1 : player.y;
+					player.x = targetX;
+					player.y = targetY;
 					player.mapX = newMap.x;
 					player.mapY = newMap.y;
 					player.save();
@@ -102,7 +96,7 @@ var ClientHandler = new Class({
 			player.save();
 			ch.updatePlayer(player);
 			console.log('Player - x: ' + player.x + ', y: ' + player.y);
-			console.log('Map - x: ' + newMap.x + ', y: ' + newMap.y);
+			console.log('Map - x: ' + player.mapX + ', y: ' + player.mapY);
 		}
 	},
 	
