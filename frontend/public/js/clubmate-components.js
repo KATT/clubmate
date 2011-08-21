@@ -118,7 +118,8 @@ CM.Components = function() {
 						$clear(textEntity.resetTimeout);
 					}
 					textEntity.text(text);
-					textEntity.resetTimeout = setTimeout(function() {textEntity.text(obj.options.alias ? obj.options.alias : '');}, 3000);
+					$('chatLog').innerHTML += '<br />' + text;
+					textEntity.resetTimeout = setTimeout(function() {textEntity.text(obj.options.alias ? obj.options.alias : '');}, CM.Settings.ClearMessageTimeout);
 					this.UpdateEntitiesPositions();
 				}
 			});

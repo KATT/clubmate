@@ -46,8 +46,9 @@ CM.UIManager = function() {
 			Crafty.scene('main');
 			Crafty.viewport.x = CM.Settings.xOffset*CM.Settings.TileWidth;
 			Crafty.viewport.y = CM.Settings.yOffset*CM.Settings.TileHeight;
-			var chatField = new Element('input', {id: 'chatField', type: 'text'});
-			chatField.inject($('controlPanel'));
+			var chatField = new Element('input', {id: 'chatField', type: 'text', autocomplete: 'off'});
+			var chatLog = new Element('div', {id: 'chatLog'});
+			$('controlPanel').adopt(chatField, chatLog);
 			var keyboardListener = new Keyboard({
 				active: true
 			});
