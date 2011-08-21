@@ -228,6 +228,11 @@ CM.Object.extend({
 		} else {
 			CM.Object.onNew(data);
 		}
+	},
+	onRemove: function(id) {
+		var obj = CM.State.Objects[id];
+		obj.Entity.destroy();
+		delete CM.State.Objects[id];
 	}
 });
 

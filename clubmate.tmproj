@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>currentDocument</key>
-	<string>frontend/node/ClientHandler.js</string>
+	<string>frontend/public/js/clubmate.js</string>
 	<key>documents</key>
 	<array>
 		<dict>
@@ -21,33 +21,75 @@
 	<integer>200</integer>
 	<key>metaData</key>
 	<dict>
-		<key>frontend/app.js</key>
+		<key>common/models/Player.js</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>13</integer>
+				<integer>20</integer>
 				<key>line</key>
-				<integer>41</integer>
+				<integer>21</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
 			<integer>0</integer>
 		</dict>
+		<key>frontend/app.js</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>23</integer>
+				<key>line</key>
+				<integer>7</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>5</integer>
+		</dict>
 		<key>frontend/node/ClientHandler.js</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>0</integer>
+				<integer>1</integer>
 				<key>line</key>
-				<integer>84</integer>
+				<integer>18</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>56</integer>
+			<integer>167</integer>
+		</dict>
+		<key>frontend/node_modules/socket.io/lib/socket.io.js</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>3</integer>
+				<key>line</key>
+				<integer>21</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>0</integer>
+		</dict>
+		<key>frontend/node_modules/socket.io/lib/socket.js</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>7</integer>
+				<key>line</key>
+				<integer>183</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>144</integer>
 		</dict>
 		<key>frontend/public/css/style.css</key>
 		<dict>
@@ -68,14 +110,14 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>0</integer>
+				<integer>31</integer>
 				<key>line</key>
-				<integer>13</integer>
+				<integer>70</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>0</integer>
+			<integer>54</integer>
 		</dict>
 		<key>frontend/public/js/clubmate-engine.js</key>
 		<dict>
@@ -84,7 +126,7 @@
 				<key>column</key>
 				<integer>34</integer>
 				<key>line</key>
-				<integer>15</integer>
+				<integer>57</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
@@ -110,14 +152,14 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>62</integer>
+				<integer>42</integer>
 				<key>line</key>
-				<integer>64</integer>
+				<integer>215</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>0</integer>
+			<integer>195</integer>
 		</dict>
 		<key>frontend/public/js/plugins.js</key>
 		<dict>
@@ -138,40 +180,59 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>27</integer>
+				<integer>0</integer>
 				<key>line</key>
-				<integer>66</integer>
+				<integer>24</integer>
 			</dict>
+			<key>columnSelection</key>
+			<false/>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>0</integer>
+			<integer>9</integer>
+			<key>selectFrom</key>
+			<dict>
+				<key>column</key>
+				<integer>0</integer>
+				<key>line</key>
+				<integer>20</integer>
+			</dict>
+			<key>selectTo</key>
+			<dict>
+				<key>column</key>
+				<integer>0</integer>
+				<key>line</key>
+				<integer>24</integer>
+			</dict>
 		</dict>
 		<key>frontend/views/index.html</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>24</integer>
+				<integer>53</integer>
 				<key>line</key>
-				<integer>31</integer>
+				<integer>44</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>10</integer>
+			<integer>12</integer>
 		</dict>
 	</dict>
 	<key>openDocuments</key>
 	<array>
 		<string>frontend/public/js/clubmate-settings.js</string>
 		<string>frontend/public/js/clubmate-engine.js</string>
+		<string>frontend/public/js/clubmate-components.js</string>
 		<string>frontend/public/js/clubmate.js</string>
 		<string>frontend/node/ClientHandler.js</string>
+		<string>common/models/Player.js</string>
+		<string>frontend/node_modules/socket.io/lib/socket.io.js</string>
+		<string>frontend/node_modules/socket.io/lib/socket.js</string>
 		<string>frontend/views/index.html</string>
 		<string>frontend/public/css/style.css</string>
 		<string>frontend/app.js</string>
-		<string>frontend/public/js/clubmate-components.js</string>
 		<string>frontend/test_data.js</string>
 	</array>
 	<key>showFileHierarchyDrawer</key>

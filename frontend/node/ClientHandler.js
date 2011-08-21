@@ -35,6 +35,17 @@ var ClientHandler = new Class({
 			
 			var onPlayer = function(player) {
 				client.set('player', player, function() {
+					client.emit('stateUpdate', {
+						entityType: 'Player',
+						action: 'New',
+						data: [ player ]
+					});
+					Map.collection.update({_id: new ObjectId(String(player.map))}, {'$push': {objects: new ObjectId(String(player._id))}}, function(err) {
+						if(err) {
+							console.log(err);
+							throw err;
+						}
+					});
 					var mapQuery = Map.find({x: {'$gte': player.mapX - 1, '$lte': player.mapX + 1}, y: {'$gte': player.mapY - 1, '$lte': player.mapY + 1}});
 					mapQuery.sort('y', 1, 'x', 1);
 					mapQuery.exec(function(err, maps) {
@@ -49,12 +60,17 @@ var ClientHandler = new Class({
 						});
 						maps.each(function(map) {
 							client.join(map.roomID);
+							//TODO: also look for other types of objects
+							Player.find({'_id': {'$in': map.objects}}, function(err, players) {
+								if(players.length > 0) {
+									client.emit('stateUpdate', {
+										entityType: 'Object',
+										action: 'New',
+										data:  players 
+									});
+								}
+							});
 						});
-					});
-					client.emit('stateUpdate', {
-						entityType: 'Player',
-						action: 'New',
-						data: [ player ]
 					});
 					ch.updatePlayer(player, client); //TODO: Data sent twice to the current player
 					//Get map chunk for player x & y
@@ -99,8 +115,32 @@ var ClientHandler = new Class({
 			}
 		});
 	},
+	
+	disconnect: function() {
+		var client = this;
+		console.log('Player disconnected');
+		client.get('player', function(err, player) {
+			if(err) {
+				console.log(err);
+				throw err;
+			}
+			Map.collection.update({_id: new ObjectId(String(player.map))}, {'$pull': {objects: new ObjectId(String(player._id))}}, function(err) {
+				if(err) {
+					console.log(err);
+					throw err;
+				}
+			});
+			ch.sockets.in(Map.getRoomID(player.mapX, player.mapY)).emit('stateUpdate', {
+				entityType: 'Object',
+				action: 'Remove',
+				data: [ player._id ]
+			});
+		});		
+	},
+	
 	addClient : function(client) {
 		client.on('login', ch.login);
+		client.on('disconnect', ch.disconnect);
 	},
 	
 	movePlayer: function(req) {
