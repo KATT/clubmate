@@ -4,6 +4,7 @@ CM.Components = function() {
 			Crafty.c('player', {
 				init: function() {
 					this.requires('gameSprite, animate'); 
+					this.attr({z: 3});
 					this.bind('EnterFrame', function() {
 						var xPos = (CM.Settings.xOffset)*CM.Settings.TileWidth - this.x;
 						var yPos = (CM.Settings.yOffset)*CM.Settings.TileWidth - this.y;
@@ -66,6 +67,9 @@ CM.Components = function() {
 					this.requires('2D, DOM');
 					this.attr({w: CM.Settings.TileWidth, h: CM.Settings.TileHeight, z: 2});
 					//this.animate('walk_right', [[120,8], [96,8], [120,8], [72,8]]);
+					this.bind('Remove', function() {
+						this.textEntity.destroy();
+					});
 					this.bind('EnterFrame', function() {
 						var xOffset = this.Object.options.mapX*CM.Settings.MapWidth;
 						var yOffset = this.Object.options.mapY*CM.Settings.MapHeight;
@@ -79,6 +83,7 @@ CM.Components = function() {
 								if(targetY > this.y) { dy = 1; } else if (targetY < this.y) {dy = -1; }
 								this.x += dx;
 								this.y += dy;
+								this.UpdateEntitiesPositions();
 							} else {
 								this.UpdatePosition();
 							}
@@ -86,9 +91,20 @@ CM.Components = function() {
 					});
 				},
 				
+				UpdateEntitiesPositions: function() {
+					this.textEntity.y = this.y - 14;
+					this.textEntity.x = this.x - 10;
+				},
+				
 				UpdatePosition: function() {
 					this.x = (this.Object.options.x + this.Object.options.mapX*CM.Settings.MapWidth)* CM.Settings.TileWidth;
 					this.y = (this.Object.options.y + this.Object.options.mapY*CM.Settings.MapHeight)* CM.Settings.TileHeight;
+					if(this.Object.options.alias) {
+						if(!this.textEntity) {
+							this.textEntity = Crafty.e('2D, DOM, Text').text(this.Object.options.alias);
+						}
+						this.UpdateEntitiesPositions();
+					}
 				}
 			});
 		}
