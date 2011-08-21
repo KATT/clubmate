@@ -65,14 +65,12 @@ CM.Engine = function() {
 			this.context.translate(CM.Settings.xOffset * CM.Settings.TileWidth, CM.Settings.yOffset * CM.Settings.TileHeight);
 			var interval = 1000 / CM.Settings.FPS;
 			CM.Engine.gameTimer = setInterval(gameLoop, interval);
-			var keyboardListener = new Keyboard({
-				active: true
-			});
-			keyboardListener.addEvents({
+			CM.UIManager.KeyboardListener.addEvents({
 			    'up': function() { movePlayer(0, -1); },
 			    'down': function() { movePlayer(0, 1); },
 			    'left': function() { movePlayer(-1, 0); },
 			    'right': function() { movePlayer(1, 0); },
+				
 			});
 		},
 		InitMapTiles: function(tileSet) {

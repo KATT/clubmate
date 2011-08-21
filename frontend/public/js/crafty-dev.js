@@ -1,12 +1,11 @@
+
 /*!
 * Crafty v0.4.3
 * http://craftyjs.com
 *
 * Copyright 2010, Louis Stowasser
 * Dual licensed under the MIT or GPL licenses.
-*/
-
-(function(window, undefined) {
+*/(function(window, undefined) {
 
 /**@
 * #Crafty
@@ -303,13 +302,15 @@ Crafty.fn = Crafty.prototype = {
 			
 			//extend if object
 			this.extend(key);
-			this.trigger("Change"); //trigger change event
+			this.trigger("Change", key); //trigger change event
 			return this;
 		}
 		//if key value pair
 		this[key] = value;
-		
-		this.trigger("Change"); //trigger change event
+
+		var change = {};
+		change[key] = value;
+		this.trigger("Change", change ); //trigger change event
 		return this;
 	},
 	
@@ -722,16 +723,13 @@ Crafty.extend({
 		
 		step: function() {
 			loops = 0;
-			
 			while((new Date).getTime() > nextGameTick) {
 				Crafty.trigger("EnterFrame", {frame: frame++});
 				nextGameTick += skipTicks;
 				loops++;
 			}
-			
-			//draw Crafty objects
 			if(loops) {
-				Crafty.draw();
+				Crafty.DrawManager.draw();
 			}
 		},
 
@@ -994,13 +992,105 @@ Crafty.bind("Load", function() {
 
 //make Crafty global
 window.Crafty = Crafty;
-})(window);
-
-//wrap around components
+})(window);//wrap around components
 (function(Crafty, window, document) {
-
-
-/**
+/**@
+* #Sprite
+* @category Graphics
+* Component for using tiles in a sprite map.
+*/
+Crafty.c("Sprite", {
+	__image: '',
+	__tile: 0,
+	__tileh: 0,
+	__padding: null,
+	__trim: null,
+	img: null,
+	ready: false,
+	
+	init: function() {
+		this.__trim = [0,0,0,0];
+		
+		var draw = function(e) {
+			var co = e.co,
+				pos = e.pos,
+				context = e.ctx;
+				
+			if(e.type === "canvas") {
+				//draw the image on the canvas element
+				context.drawImage(this.img, //image element
+								 co.x, //x position on sprite
+								 co.y, //y position on sprite
+								 co.w, //width on sprite
+								 co.h, //height on sprite
+								 pos._x, //x position on canvas
+								 pos._y, //y position on canvas
+								 pos._w, //width on canvas
+								 pos._h //height on canvas
+				);
+			} else if(e.type === "DOM") {
+				this._element.style.background = "url('" + this.__image + "') no-repeat -" + co.x + "px -" + co.y + "px";
+			}
+		};
+		
+		this.bind("Draw", draw).bind("RemoveComponent", function(id) {
+			if(id === "Sprite") this.unbind("Draw", draw);  
+		});
+	},
+	
+	/**@
+	* #.sprite
+	* @comp Sprite
+	* @sign public this .sprite(Number x, Number y, Number w, Number h)
+	* @param x - X cell position 
+	* @param y - Y cell position
+	* @param w - Width in cells
+	* @param h - Height in cells
+	* Uses a new location on the sprite map as its sprite.
+	*
+	* Values should be in tiles or cells (not pixels).
+	*/
+	sprite: function(x,y,w,h) {
+		this.__coord = [x * this.__tile + this.__padding[0] + this.__trim[0],
+						y * this.__tileh + this.__padding[1] + this.__trim[1],
+						this.__trim[2] || w * this.__tile || this.__tile,
+						this.__trim[3] || h * this.__tileh || this.__tileh];
+		
+		this.trigger("Change");
+		return this;
+	},
+	
+	/**@
+	* #.crop
+	* @comp Sprite
+	* @sign public this .crop(Number x, Number y, Number w, Number h)
+	* @param x - Offset x position
+	* @param y - Offset y position
+	* @param w - New width
+	* @param h - New height
+	* If the entity needs to be smaller than the tile size, use this method to crop it.
+	*
+	* The values should be in pixels rather than tiles.
+	*/
+	crop: function(x,y,w,h) {
+		var old = this._mbr || this.pos();
+		this.__trim = [];
+		this.__trim[0] = x;
+		this.__trim[1] = y;
+		this.__trim[2] = w;
+		this.__trim[3] = h;
+		
+		this.__coord[0] += x;
+		this.__coord[1] += y;
+		this.__coord[2] = w;
+		this.__coord[3] = h;
+		this._w = w;
+		this._h = h;
+		
+		this.trigger("Change", old);
+		return this;
+	},
+});/**
 * Spatial HashMap for broad phase collision
 *
 * @author Louis Stowasser
@@ -1017,15 +1107,15 @@ var cellsize,
 HashMap.prototype = {
 	insert: function(obj) {
 		var keys = HashMap.key(obj),
-			entry = new Entry(keys, obj, this),
+			entry = new Entry(keys,obj,this),
 			i = 0,
 			j,
 			hash;
 			
 		//insert into all x buckets
-		for(i = keys.x1; i <= keys.x2; i++) {
+		for(i=keys.x1;i<=keys.x2;i++) {
 			//insert into all y buckets
-			for(j = keys.y1; j <= keys.y2; j++) {
+			for(j=keys.y1;j<=keys.y2;j++) {
 				hash =  i + SPACE + j;
 				if(!this.map[hash]) this.map[hash] = [];
 				this.map[hash].push(obj);
@@ -1035,19 +1125,19 @@ HashMap.prototype = {
 		return entry;
 	},
 	
-	search: function(rect, filter) {
+	search: function(rect,filter) {
 		var keys = HashMap.key(rect),
-			i, j,
+			i,j,
 			hash,
 			results = [];
 			
 			if(filter === undefined) filter = true; //default filter to true
 		
 		//search in all x buckets
-		for(i = keys.x1; i <= keys.x2;i++) {
+		for(i=keys.x1;i<=keys.x2;i++) {
 			//insert into all y buckets
-			for(j = keys.y1; j <= keys.y2; j++) {
-				hash = i + SPACE + j;
+			for(j=keys.y1;j<=keys.y2;j++) {
+				hash =  i + SPACE + j;
 				
 				if(this.map[hash]) {
 					results = results.concat(this.map[hash]);
@@ -1058,22 +1148,19 @@ HashMap.prototype = {
 		if(filter) {
 			var obj, id, finalresult = [], found = {};
 			//add unique elements to lookup table with the entity ID as unique key
-			for(i = 0, l = results.length; i < l; i++) {
+			for(i=0,l=results.length;i<l;i++) {
 				obj = results[i];
 				if(!obj) continue; //skip if deleted
 				id = obj[0]; //unique ID
 				
 				//check if not added to hash and that actually intersects
-				if(!found[id] && obj.x < rect.x + rect.w && obj.x + obj.w > rect.x &&
-								 obj.y < rect.y + rect.h && obj.h + obj.y > rect.y) {
+				if(!found[id] && obj.x < rect._x + rect._w && obj._x + obj._w > rect._x &&
+								 obj.y < rect._y + rect._h && obj._h + obj._y > rect._y) 
 				   found[id] = results[i];
-				}
 			}
 			
 			//loop over lookup table and copy to final array
-			for(obj in found) {
-				finalresult.push(found[obj]);
-			}
+			for(obj in found) finalresult.push(found[obj]);
 			
 			return finalresult;
 		} else {
@@ -1081,7 +1168,7 @@ HashMap.prototype = {
 		}
 	},
 	
-	remove: function(keys, obj) {
+	remove: function(keys,obj) {
 		var i = 0, j, hash;
 			
 		if(arguments.length == 1) {
@@ -1090,19 +1177,16 @@ HashMap.prototype = {
 		}	
 		
 		//search in all x buckets
-		for(i = keys.x1; i <= keys.x2; i++) {
+		for(i=keys.x1;i<=keys.x2;i++) {
 			//insert into all y buckets
-			for(j = keys.y1; j <= keys.y2; j++) {
+			for(j=keys.y1;j<=keys.y2;j++) {
 				hash = i + SPACE + j;
 				
 				if(this.map[hash]) {
 					var cell = this.map[hash], m = 0, n = cell.length;
 					//loop over objs in cell and delete
-					for(;m < n; m++) {
-						if(cell[m] && cell[m][0] === obj[0]) {
-							cell.splice(m,1);
-						}
-					}
+					for(;m<n;m++) if(cell[m] && cell[m][0] === obj[0]) 
+						cell.splice(m,1);
 				}
 			}
 		}
@@ -1110,15 +1194,13 @@ HashMap.prototype = {
 };
 
 HashMap.key = function(obj) {
-	if(obj.hasOwnProperty('mbr')) {
+	if (obj.hasOwnProperty('mbr')) {
 		obj = obj.mbr();
 	}
-	
-	var x1 = ~~(obj.x / cellsize),
-		y1 = ~~(obj.y / cellsize),
-		x2 = ~~((obj.w + obj.x) / cellsize),
-		y2 = ~~((obj.h + obj.y) / cellsize);
-		
+	var x1 = ~~(obj._x / cellsize),
+		y1 = ~~(obj._y / cellsize),
+		x2 = ~~((obj._w + obj._x) / cellsize),
+		y2 = ~~((obj._h + obj._y) / cellsize);
 	return {x1: x1, y1: y1, x2: x2, y2: y2};
 };
 
@@ -1130,27 +1212,21 @@ function Entry(keys,obj,map) {
 	this.keys = keys;
 	this.map = map;
 	this.obj = obj;
-	this.hash = HashMap.hash(keys);
 }
 
 Entry.prototype = {
 	update: function(rect) {
 		//check if buckets change
-		var newhash = HashMap.hash(HashMap.key(rect)), e;
-		
-		if(newhash != this.hash) {
+		if(HashMap.hash(HashMap.key(rect)) != HashMap.hash(this.keys)) {
 			this.map.remove(this.keys, this.obj);
-			e = this.map.insert(this.obj);
+			var e = this.map.insert(this.obj);
 			this.keys = e.keys;
-			this.hash = newhash;
 		}
 	}
 };
 
 parent.HashMap = HashMap;
-})(Crafty);
-
-Crafty.map = new Crafty.HashMap();
+})(Crafty);Crafty.map = new Crafty.HashMap();
 var M = Math,
 	Mc = M.cos,
 	Ms = M.sin,
@@ -1170,14 +1246,14 @@ Crafty.c("2D", {
 	* Is actually a getter/setter so when using this value for calculations and not modifying it,
 	* use the `._x` property.
 	*/
-	x: 0,
+	_x: 0,
 	/**@
 	* #.y
 	* The `y` position on the stage. When modified, will automatically be redrawn.
 	* Is actually a getter/setter so when using this value for calculations and not modifying it,
 	* use the `._y` property.
 	*/
-	y: 0,
+	_y: 0,
 	/**@
 	* #.w
 	* The width of the entity. When modified, will automatically be redrawn.
@@ -1186,7 +1262,7 @@ Crafty.c("2D", {
 	*
 	* Changing this value is not recommended as canvas has terrible resize quality and DOM will just clip the image.
 	*/
-	w: 0,
+	_w: 0,
 	/**@
 	* #.x
 	* The height of the entity. When modified, will automatically be redrawn.
@@ -1195,7 +1271,7 @@ Crafty.c("2D", {
 	*
 	* Changing this value is not recommended as canvas has terrible resize quality and DOM will just clip the image.
 	*/
-	h: 0,
+	_h: 0,
 	/**@
 	* #.z
 	* The `z` index on the stage. When modified, will automatically be redrawn.
@@ -1206,19 +1282,19 @@ Crafty.c("2D", {
 	* A global Z index is produced based on its `z` value as well as the GID (which entity was created first).
 	* Therefore entities will naturally maintain order depending on when it was created if same z value.
 	*/
-	z: 0,
+	_z: 0,
 	/**@
 	* #.rotation
 	* Set the rotation of your entity. Rotation takes degrees in a clockwise direction.
 	* It is important to note there is no limit on the rotation value. Setting a rotation 
 	* mod 360 will give the same rotation without reaching huge numbers.
 	*/
-	rotation: 0,
+	_rotation: 0,
 	/**@
 	* #.alpha
 	* Transparency of an entity. Must be a decimal value between 0.0 being fully transparent to 1.0 being fully opaque.
 	*/
-	alpha: 1.0,
+	_alpha: 1.0,
 	/**@
 	* #.visible
 	* If the entity is visible or not. Accepts a true or false value.
@@ -1226,38 +1302,140 @@ Crafty.c("2D", {
 	*
 	* The entity will still exist and can be collided with but just won't be drawn.
 	*/
-	visible: true,
-	//TODO: COMMENT!
-	flipX: false,
-	
-	flipY: false,
-	
+	_visible: true,
 	_global: null,
 	
 	_origin: null,
 	_mbr: null,
 	_entry: null,
 	_children: null,
-	_changed: null,
+	_changed: false,
 	
 	init: function() {
 		this._global = this[0];
 		this._origin = {x: 0, y: 0};
 		this._children = [];
 		
-		//store the old position
-		this._changed = {
-			x: 0,
-			y: 0,
-			z: 0,
-			rotation: 0,
-			alpha: 1.0,
-			flipX: false,
-			flipY: false
-		};
+		if(Crafty.support.setter) {
+			//create getters and setters on x,y,w,h,z
+			this.__defineSetter__('x', function(v) { this._attr('_x',v); });
+			this.__defineSetter__('y', function(v) { this._attr('_y',v); });
+			this.__defineSetter__('w', function(v) { this._attr('_w',v); });
+			this.__defineSetter__('h', function(v) { this._attr('_h',v); });
+			this.__defineSetter__('z', function(v) { this._attr('_z',v); });
+			this.__defineSetter__('rotation', function(v) { this._attr('_rotation', v); });
+			this.__defineSetter__('alpha', function(v) { this._attr('_alpha',v); });
+			this.__defineSetter__('visible', function(v) { this._attr('_visible',v); });
+			
+			this.__defineGetter__('x', function() { return this._x; });
+			this.__defineGetter__('y', function() { return this._y; });
+			this.__defineGetter__('w', function() { return this._w; });
+			this.__defineGetter__('h', function() { return this._h; });
+			this.__defineGetter__('z', function() { return this._z; });
+			this.__defineGetter__('rotation', function() { return this._rotation; });
+			this.__defineGetter__('alpha', function() { return this._alpha; });
+			this.__defineGetter__('visible', function() { return this._visible; });
+			
+		//IE9 supports Object.defineProperty
+		} else if(Crafty.support.defineProperty) {
+			
+			Object.defineProperty(this, 'x', { set: function(v) { this._attr('_x',v); }, get: function() { return this._x; } });
+			Object.defineProperty(this, 'y', { set: function(v) { this._attr('_y',v); }, get: function() { return this._y; } });
+			Object.defineProperty(this, 'w', { set: function(v) { this._attr('_w',v); }, get: function() { return this._w; } });
+			Object.defineProperty(this, 'h', { set: function(v) { this._attr('_h',v); }, get: function() { return this._h; } });
+			Object.defineProperty(this, 'z', { set: function(v) { this._attr('_z',v); }, get: function() { return this._z; } });
+			
+			Object.defineProperty(this, 'rotation', { 
+				set: function(v) { this._attr('_rotation',v); }, get: function() { return this._rotation; } 
+			});
+			
+			Object.defineProperty(this, 'alpha', { 
+				set: function(v) { this._attr('_alpha',v); }, get: function() { return this._alpha; } 
+			});
+			
+			Object.defineProperty(this, 'visible', { 
+				set: function(v) { this._attr('_visible',v); }, get: function() { return this._visible; } 
+			});
+			
+		} else {
+			/*
+			if no setters, check on every frame for a difference 
+			between this._(x|y|w|h|z...) and this.(x|y|w|h|z)
+			*/
+			
+			//set the public properties to the current private properties
+			this.x = this._x;
+			this.y = this._y;
+			this.w = this._w;
+			this.h = this._h;
+			this.z = this._z;
+			this.rotation = this._rotation;
+			this.alpha = this._alpha;
+			this.visible = this._visible;
+			
+			//on every frame check for a difference in any property
+			this.bind("EnterFrame", function() {
+				//if there are differences between the public and private properties
+				if(this.x !== this._x || this.y !== this._y ||
+				   this.w !== this._w || this.h !== this._h ||
+				   this.z !== this._z || this.rotation !== this._rotation ||
+				   this.alpha !== this._alpha || this.visible !== this._visible) {
+					
+					//save the old positions
+					var old = this.mbr() || this.pos();
+					
+					//if rotation has changed, use the private rotate method
+					if(this.rotation !== this._rotation) {
+						this._rotate(this.rotation);
+					} else {
+						//update the MBR
+						var mbr = this._mbr, moved = false;
+						if(mbr) { //check each value to see which has changed
+							if(this.x !== this._x) { mbr._x -= this.x - this._x; moved = true; }
+							else if(this.y !== this._y) { mbr._y -= this.y - this._y; moved = true; }
+							else if(this.w !== this._w) { mbr._w -= this.w - this._w; moved = true; }
+							else if(this.h !== this._h) { mbr._h -= this.h - this._h; moved = true; }
+							else if(this.z !== this._z) { mbr._z -= this.z - this._z; moved = true; }
+						}
+						
+						//if the moved flag is true, trigger a move
+						if(moved) this.trigger("Move", old);
+					}
+					
+					//set the public properties to the private properties
+					this._x = this.x;
+					this._y = this.y;
+					this._w = this.w;
+					this._h = this.h;
+					this._z = this.z;
+					this._rotation = this.rotation;
+					this._alpha = this.alpha;
+					this._visible = this.visible;
+
+					//trigger the changes
+					this.trigger("Change", old);
+					//without this entities weren't added correctly to Crafty.map.map in IE8.
+					//not entirely sure this is the best way to fix it though
+					this.trigger("Move", old);
+				}
+			});
+		}
 		
 		//insert self into the HashMap
 		this._entry = Crafty.map.insert(this);
+		
+		//when object changes, update HashMap
+		this.bind("Move", function(e) {
+			var area = this._mbr || this;
+			this._entry.update(area);
+			this._cascade(e);
+		});
+		
+		this.bind("Rotate", function(e) {
+			var old = this._mbr || this;
+			this._entry.update(old);
+			this._cascade(e);
+		});
 		
 		//when object is removed, remove from HashMap
 		this.bind("Remove", function() {
@@ -1267,30 +1445,11 @@ Crafty.c("2D", {
 		});
 	},
 	
-	reset: function() {
-		var old = this._changed;
-		
-		old.x = this.x;
-		old.y = this.y;
-		old.w = this.w;
-		old.h = this.h;
-		old.z = this.z;
-		old.rotation = this.rotation;
-		old.alpha = this.alpha;
-		old.flipX = this.flipX;
-		old.flipY = this.flipY;
-	},
-	
-	moved: function() {
-		var pos = this._mbr || this;
-		this._entry.update(pos);
-	},
-	
 	/**
 	* Calculates the MBR when rotated with an origin point
 	*/
-	rotated: function() {
-		var theta = -1 * (this.rotation % 360), //angle always between 0 and 359
+	_rotate: function(v) {
+		var theta = -1 * (v % 360), //angle always between 0 and 359
 			rad = theta * DEG_TO_RAD,
 			ct = Math.cos(rad), //cache the sin and cosine of theta
 			st = Math.sin(rad),
@@ -1303,23 +1462,33 @@ Crafty.c("2D", {
 			if(!this._rotation % 360) return;
 		}
 		
-		//rotate each corner to find the min and max
-		var x0 = o.x + (this.x - o.x) * ct + (this.y - o.y) * st,
-			y0 = o.y - (this.x - o.x) * st + (this.y - o.y) * ct,
-			x1 = o.x + (this.x + this.w - o.x) * ct + (this.y - o.y) * st,
-			y1 = o.y - (this.x + this.w - o.x) * st + (this.y - o.y) * ct,
-			x2 = o.x + (this.x + this.w - o.x) * ct + (this.y + this.h - o.y) * st,
-			y2 = o.y - (this.x + this.w - o.x) * st + (this.y + this.h - o.y) * ct,
-			x3 = o.x + (this.x - o.x) * ct + (this.y + this.h - o.y) * st,
-			y3 = o.y - (this.x - o.x) * st + (this.y + this.h - o.y) * ct,
+		var x0 = o.x + (this._x - o.x) * ct + (this._y - o.y) * st,
+			y0 = o.y - (this._x - o.x) * st + (this._y - o.y) * ct,
+			x1 = o.x + (this._x + this._w - o.x) * ct + (this._y - o.y) * st,
+			y1 = o.y - (this._x + this._w - o.x) * st + (this._y - o.y) * ct,
+			x2 = o.x + (this._x + this._w - o.x) * ct + (this._y + this._h - o.y) * st,
+			y2 = o.y - (this._x + this._w - o.x) * st + (this._y + this._h - o.y) * ct,
+			x3 = o.x + (this._x - o.x) * ct + (this._y + this._h - o.y) * st,
+			y3 = o.y - (this._x - o.x) * st + (this._y + this._h - o.y) * ct,
+			minx = Math.floor(Math.min(x0,x1,x2,x3)),
+			miny = Math.floor(Math.min(y0,y1,y2,y3)),
+			maxx = Math.ceil(Math.max(x0,x1,x2,x3)),
+			maxy = Math.ceil(Math.max(y0,y1,y2,y3));
 			
-			minX = Math.floor(Math.min(x0, x1, x2, x3)),
-			minY = Math.floor(Math.min(y0, y1, y2, y3)),
-			maxX = Math.ceil(Math.max(x0, x1, x2, x3)),
-			maxY = Math.ceil(Math.max(y0, y1, y2, y3));
+		this._mbr = {_x: minx, _y: miny, _w: maxx - minx, _h: maxy - miny};
+		
+		//trigger rotation event
+		var difference = this._rotation - v,
+			drad = difference * DEG_TO_RAD;
 			
-		this._mbr = {x: minX, y: minY, w: maxX - minX, h: maxY - minY};
-		this._matrix = {M11: ct, M12: st, M21: -st, M22: ct};
+		this.trigger("Rotate", {
+			cos: Math.cos(drad), 
+			sin: Math.sin(drad), 
+			deg: difference, 
+			rad: drad, 
+			o: {x: o.x, y: o.y},
+			matrix: {M11: ct, M12: st, M21: -st, M22: ct}
+		});
 	},
 	
 	/**@
@@ -1329,7 +1498,7 @@ Crafty.c("2D", {
 	* Calculates the area of the entity
 	*/
 	area: function() {
-		return this.w * this.h;
+		return this._w * this._h;
 	},
 	
 	/**@
@@ -1352,8 +1521,8 @@ Crafty.c("2D", {
 			rect = {x: x, y: y, w: w, h: h};
 		}
 		
-		return obj.x < rect.x + rect.w && obj._x + obj.w > rect.x &&
-			   obj.y < rect.y + rect.h && obj._h + obj.y > rect.y;
+		return obj._x < rect.x + rect.w && obj._x + obj._w > rect.x &&
+			   obj._y < rect.y + rect.h && obj._h + obj._y > rect.y;
 	},
 	
 	/**@
@@ -1416,10 +1585,10 @@ Crafty.c("2D", {
 	*/
 	pos: function() {
 		return {
-			x: (this.x),
-			y: (this.y),
-			w: (this.w),
-			h: (this.h)
+			_x: (this._x),
+			_y: (this._y),
+			_w: (this._w),
+			_h: (this._h)
 		};
 	},
 	
@@ -1430,10 +1599,10 @@ Crafty.c("2D", {
 	mbr: function() {
 		if(!this._mbr) return this.pos();
 		return {
-			x: (this._mbr.x),
-			y: (this._mbr.y),
-			w: (this._mbr.w),
-			h: (this._mbr.h)
+			_x: (this._mbr._x),
+			_y: (this._mbr._y),
+			_w: (this._mbr._w),
+			_h: (this._mbr._h)
 		};
 	},
 	
@@ -1447,6 +1616,9 @@ Crafty.c("2D", {
 	* an object can't be passed. The arguments require the x and y value
 	*/
 	isAt: function(x,y) {
+		if(this.map) {
+			return this.map.containsPoint(x,y);
+		}
 		return this.x <= x && this.x + this.w >= x &&
 			   this.y <= y && this.y + this.h >= y;
 	},
@@ -1489,6 +1661,33 @@ Crafty.c("2D", {
 	},
 	
 	/**
+	* Move or rotate all the children for this entity
+	*/
+	_cascade: function(e) {
+		if(!e) return; //no change in position
+		var i = 0, children = this._children, l = children.length, obj;
+		//rotation
+		if(e.cos) {
+			for(;i<l;++i) {
+				obj = children[i];
+				if('rotate' in obj) obj.rotate(e);
+			}
+		} else {
+			//use MBR or current
+			var rect = this._mbr || this,
+				dx = rect._x - e._x,
+				dy = rect._y - e._y,
+				dw = rect._w - e._w,
+				dh = rect._h - e._h;
+			
+			for(;i<l;++i) {
+				obj = children[i];
+				obj.shift(dx,dy,dw,dh);
+			}
+		}
+	},
+	
+	/**
 	* #.attach
 	* @comp 2D
 	* @sign public this .attach(Entity obj[, .., Entity objN])
@@ -1498,12 +1697,11 @@ Crafty.c("2D", {
 	*
 	* As many objects as wanted can be attached and a hierarchy of objects is possible by attaching.
 	*/
-	appendChild: function() {
+	attach: function() {
 		var i = 0, arg = arguments, l = arguments.length, obj;
 		for(;i<l;++i) {
 			obj = arg[i];
 			this._children.push(obj);
-			this.trigger("ChildAdded", obj);
 		}
 		
 		return this;
@@ -1517,18 +1715,16 @@ Crafty.c("2D", {
 	* Stop an entity from following the current entity. Passing no arguments will stop
 	* every entity attached.
 	*/
-	removeChild: function(obj) {
+	detach: function(obj) {
 		//if nothing passed, remove all attached objects
 		if(!obj) {
 			this._children = [];
 			return this;
 		}
-		
 		//if obj passed, find the handler and unbind
-		for (var i = 0; i < this._children.length; i++) {
+    for (var i = 0; i < this._children.length; i++) {
 			if (this._children[i] == obj) {
 				this._children.splice(i, 1);
-				this.trigger("ChildRemoved", obj);
 			}
 		}
 		
@@ -1557,17 +1753,17 @@ Crafty.c("2D", {
 		//text based origin
 		if(typeof x === "string") {
 			if(x === "centre" || x === "center" || x.indexOf(' ') === -1) {
-				x = this.w / 2;
-				y = this.h / 2;
+				x = this._w / 2;
+				y = this._h / 2;
 			} else {
 				var cmd = x.split(' ');
 				if(cmd[0] === "top") y = 0;
-				else if(cmd[0] === "bottom") y = this.h;
-				else if(cmd[0] === "middle" || cmd[1] === "center" || cmd[1] === "centre") y = this.h / 2;
+				else if(cmd[0] === "bottom") y = this._h;
+				else if(cmd[0] === "middle" || cmd[1] === "center" || cmd[1] === "centre") y = this._h / 2;
 				
-				if(cmd[1] === "center" || cmd[1] === "centre" || cmd[1] === "middle") x = this.w / 2;
+				if(cmd[1] === "center" || cmd[1] === "centre" || cmd[1] === "middle") x = this._w / 2;
 				else if(cmd[1] === "left") x = 0;
-				else if(cmd[1] === "right") x = this.w;
+				else if(cmd[1] === "right") x = this._w;
 			}
 		}
 		
@@ -1575,6 +1771,57 @@ Crafty.c("2D", {
 		this._origin.y = y;
 		
 		return this;
+	},
+	
+	flip: function(dir) {
+		dir = dir || "X";
+		this["_flip"+dir] = true;
+		this.trigger("Change");
+	},
+	
+	/**
+	* Method for rotation rather than through a setter
+	*/
+	rotate: function(e) {
+		//assume event data origin
+		this._origin.x = e.o.x - this._x;
+		this._origin.y = e.o.y - this._y;
+		
+		//modify through the setter method
+		this._attr('_rotation', e.theta);
+	},
+	
+	/**
+	* Setter method for all 2D properties including 
+	* x, y, w, h, alpha, rotation and visible.
+	*/
+	_attr: function(name,value) {	
+		//keep a reference of the old positions
+		var pos = this.pos(),
+			old = this.mbr() || pos;
+		
+		//if rotation, use the rotate method
+		if(name === '_rotation') {
+			this._rotate(value);
+		//set the global Z and trigger reorder just incase
+		} else if(name === '_z') {
+			this._global = parseInt(value + Crafty.zeroFill(this[0], 5), 10); //magic number 10e5 is the max num of entities
+			this.trigger("reorder");
+		//if the rect bounds change, update the MBR and trigger move
+		} else if(name == '_x' || name === '_y' || name === '_w' || name === '_h') {
+			var mbr = this._mbr;
+			if(mbr) {
+				mbr[name] -= this[name] - value;
+			}
+			this[name] = value;
+			this.trigger("Move", old);
+		}
+		
+		//everything will assume the value
+		this[name] = value;
+		
+		//trigger a change
+		this.trigger("Change", old);
 	}
 });
 
@@ -1595,7 +1842,7 @@ Crafty.c("Gravity", {
 	_anti: null,
 
 	init: function() {
-		if(!this.has("2D")) this.addComponent("2D");		
+		this.requires("2D");		
 	},
 
 	gravity: function(comp) {
@@ -1622,10 +1869,10 @@ Crafty.c("Gravity", {
 		pos._y++;
 
 		//map.search wants _x and intersect wants x...
-		pos.x = pos.x;
-		pos.y = pos.y;
-		pos.w = pos.w;
-		pos.h = pos.h;
+		pos.x = pos._x;
+		pos.y = pos._y;
+		pos.w = pos._w;
+		pos.h = pos._h;
 
 		q = Crafty.map.search(pos);
 		l = q.length;
@@ -1746,6 +1993,93 @@ Crafty.polygon.prototype = {
 	}
 };
 
+/**@
+* #Crafty.Circle
+* @category 2D
+* Circle object used for hitboxes and click maps. Must pass a `x`, a `y` and a `radius` value.
+*
+* ~~~
+* var centerX = 5,
+*     centerY = 10,
+*     radius = 25;
+*
+* new Crafty.circle(centerX, centerY, radius);
+* ~~~
+*
+* When creating a circle for an entity, each point should be offset or relative from the entities `x` and `y` 
+* (don't include the absolute values as it will automatically calculate this).
+*/
+Crafty.circle = function(x, y, radius) {
+	this.x = x;
+	this.y = y;
+	this.radius = radius;
+	
+	// Creates an octogon that aproximate the circle for backward compatibility.
+	this.points = [];
+	var theta;
+	
+	for(var i = 0; i < 8; i++) {
+		theta = i * Math.PI / 4;
+		this.points[i] = [Math.sin(theta) * radius, Math.cos(theta) * radius];
+	}
+};
+
+Crafty.circle.prototype = {
+	/**@
+	* #.containsPoint
+	* @comp Crafty.Circle
+	* @sign public Boolean .containsPoint(Number x, Number y)
+	* @param x - X position of the point
+	* @param y - Y position of the point
+	* Method is used to determine if a given point is contained by the circle.
+	* @example
+	* ~~~
+	* var circle = new Crafty.circle(0, 0, 10);
+	* circle.containsPoint(0, 0); //TRUE
+	* circle.containsPoint(50, 50); //FALSE
+	* ~~~
+	*/
+	containsPoint: function(x, y) {
+		var radius = this.radius,
+		    sqrt = Math.sqrt,
+		    deltaX = this.x - x,
+		    deltaY = this.y - y;
+
+		return (deltaX * deltaX + deltaY * deltaY) < (radius * radius);
+	},
+	
+	/**@
+	* #.shift
+	* @comp Crafty.Circle
+	* @sign public void .shift(Number x, Number y)
+	* @param x - Amount to shift the `x` axis
+	* @param y - Amount to shift the `y` axis
+	* Shifts the circle by the specified amount.
+	* @example
+	* ~~~
+	* var poly = new Crafty.circle(0, 0, 10);
+	* circle.shift(5,5);
+	* //{x: 5, y: 5, radius: 10};
+	* ~~~
+	*/
+	shift: function(x,y) {
+		this.x += x;
+		this.y += y;
+		
+		var i = 0, l = this.points.length, current;
+		for(;i<l;i++) {
+			current = this.points[i];
+			current[0] += x;
+			current[1] += y;
+		}
+	},
+	
+	rotate: function() {
+		// We are a circle, we don't have to rotate :)
+	}
+};
+
+
 Crafty.matrix = function(m) {
 	this.mtx = m;
 	this.width = m[0].length;
@@ -1778,9 +2112,7 @@ Crafty.matrix.prototype = {
 		if(row < 1 || row > this.mtx.length || col < 1 || col > this.mtx[0].length) return null;
 		return this.mtx[row - 1][col - 1];
 	}
-}
-
-/**@
+}/**@
 * #Collision
 * @category 2D
 * Component to detect collision between any two convex polygons.
@@ -1816,12 +2148,11 @@ Crafty.c("Collision", {
 		
 		//if no polygon presented, create a square
 		if(!poly) {
-			poly = new Crafty.polygon([0,0],[area.w,0],[area.w,area.h],[0,area.h]);
+			poly = new Crafty.polygon([0,0],[area._w,0],[area._w,area._h],[0,area._h]);
 		}
-		
 		this.map = poly;
 		this.attach(this.map);
-		this.map.shift(area.x, area.y);
+		this.map.shift(area._x, area._y);
 		
 		return this;
 	},
@@ -1870,8 +2201,8 @@ Crafty.c("Collision", {
 			
 			//check if not added to hash and that actually intersects
 			if(!dupes[id] && this[0] !== id && obj.__c[comp] && 
-							 oarea.x < area.x + area.w && oarea.x + oarea.w > area.x &&
-							 oarea.y < area.y + area.h && oarea.h + oarea.y > area.y) 
+							 oarea._x < area._x + area._w && oarea._x + oarea._w > area._x &&
+							 oarea._y < area._y + area._h && oarea._h + oarea._y > area._y) 
 			   dupes[id] = obj;
 		}
 		
@@ -1933,6 +2264,8 @@ Crafty.c("Collision", {
 			max1, max2,
 			interval,
 			MTV = null,
+      MTV2 = 0,
+      MN = null,
 			dot,
 			nextPoint,
 			currentPoint;
@@ -2019,12 +2352,15 @@ Crafty.c("Collision", {
 				return false;
 			}
 			if(interval > MTV || MTV === null) MTV = interval;
+      if (interval < MTV2) {
+        MTV2 = interval;
+        MN = {x: normal.x, y: normal.y};
+      }
 		}
 		
-		return {overlap: MTV};
+		return {overlap: MTV, normal: MN};
 	}
 });
-
 /**@
 * #DOM
 * @category Graphics
@@ -2044,20 +2380,40 @@ Crafty.c("DOM", {
 		this._element.style.position = "absolute";
 		this._element.id = "ent" + this[0];
 		
-		Crafty.register.push(this);
+		this.bind("Change", function() {
+			if(!this._changed) {
+				this._changed = true;
+				Crafty.DrawManager.add(this);
+			}
+		});
 		
-		this.bind("NewComponent", this.updateClass)
-			.bind("RemoveComponent", this.updateClass)
-			.bind("Remove", this.undraw);
-	},
-	
-	updateClass: function() {
-		var i = 0, c = this.__c, str = "";
-		for(i in c) {
-			str += ' ' + i;
+		function updateClass() {
+			var i = 0, c = this.__c, str = "";
+			for(i in c) {
+				str += ' ' + i;
+			}
+			str = str.substr(1);
+			this._element.className = str;
 		}
-		str = str.substr(1);
-		this._element.className = str;
+		
+		this.bind("NewComponent", updateClass).bind("RemoveComponent", updateClass);
+		
+		if(Crafty.support.prefix === "ms" && Crafty.support.version < 9) {
+			this._filters = {};
+			
+			this.bind("Rotate", function(e) {
+				var m = e.matrix,
+					elem = this._element.style,
+					M11 = m.M11.toFixed(8),
+					M12 = m.M12.toFixed(8),
+					M21 = m.M21.toFixed(8),
+					M22 = m.M22.toFixed(8);
+				
+				this._filters.rotation = "progid:DXImageTransform.Microsoft.Matrix(M11="+M11+", M12="+M12+", M21="+M21+", M22="+M22+",sizingMethod='auto expand')";
+			});
+		}
+		
+		this.bind("Remove", this.undraw);
 	},
 	
 	/**@
@@ -2085,113 +2441,94 @@ Crafty.c("DOM", {
 	*/
 	draw: function() {
 		var style = this._element.style,
-			old = this._changed,
+			coord = this.__coord || [0,0,0,0],
+			co = {x: coord[0], y: coord[1] },
 			prefix = Crafty.support.prefix,
-			dino = (prefix === "ms" && Crafty.support.version < 9),
-			trans = "",
-			filter = "",
-			origin;
+			trans = [];
 		
+		if(!this._visible) style.visibility = "hidden";
+		else style.visibility = "visible";
+		
+/*<<<<<<< HEAD
 		//utilize CSS3 if supported
-		if(Crafty.support.css3dtransform && (old.x !== this.x || old.y !== this.y)) {
-			trans += "translate3d("+(~~this.x)+"px,"+(~~this.y)+"px,0)";
+		if(Crafty.support.css3dtransform) {
+			trans.push("translate3d("+(~~this._x)+"px,"+(~~this._y)+"px,0)");
 		} else {
-			if(old.x !== this.x) {
-				style.left = ~~(this.x) + "px";
-			}
-			
-			if(old.y !== this.y) {
-				style.top = ~~(this.y) + "px";
-			}
+			style.left = ~~(this._x) + "px";
+			style.top = ~~(this._y) + "px";
 		}
 		
-		if(old.w !== this.w) {
-			style.width = ~~(this.w) + "px";
+=======*/
+		if(Crafty.support.css3dtransform) trans.push("translate3d("+(~~this._x)+"px,"+(~~this._y)+"px,0)");
+		else {
+			style.top = Number(this._y)+"px";
+			style.left = Number(this._x)+"px";
+			//trans.push("translate("+(~~this._x)+"px,"+(~~this._y)+"px,0)");
 		}
+//>>>>>>> 48ba1ac29df667845aac2e829f6024c0603a4ea6
+		style.width = ~~(this._w) + "px";
+		style.height = ~~(this._h) + "px";
+		style.zIndex = this._z;
 		
-		if(old.h !== this.h) {
-			style.height = ~~(this.h) + "px";
-		}
+		style.opacity = this._alpha;
+		style[prefix+"Opacity"] = this._alpha;
 		
-		if(old.z !== this.z) {
-			style.zIndex = this.z;
-		}
-		
-		if(old.alpha !== this.alpha) {
-			style.opacity = this._alpha;
-			style[prefix+"Opacity"] = this._alpha;
-			
-			//if not version 9 of IE
-			if(dino) {
-				//for IE version 8, use ImageTransform filter
-				if(Crafty.support.version === 8) {
-					filter += " progid:DXImageTransform.Microsoft.Alpha(Opacity="+(this._alpha * 100)+")";
-				//all other versions use filter
-				} else {
-					filter += " alpha(opacity="+(this._alpha*100)+")";
-				}
+		//if not version 9 of IE
+		if(prefix === "ms" && Crafty.support.version < 9) {
+			//for IE version 8, use ImageTransform filter
+			if(Crafty.support.version === 8) {
+				this._filters.alpha = "progid:DXImageTransform.Microsoft.Alpha(Opacity="+(this._alpha * 100)+")"; // first!
+			//all other versions use filter
+			} else {
+				this._filters.alpha = "alpha(opacity="+(this._alpha*100)+")";
 			}
 		}
 		
-		if(old.rotation !== this.rotation) {
-			origin = this._origin.x + "px " + this._origin.y + "px";
+		if(this._mbr) {
+			var origin = this._origin.x + "px " + this._origin.y + "px";
 			style.transformOrigin = origin;
 			style[prefix+"TransformOrigin"] = origin;
-			
-			if(Crafty.support.css3dtransform) {
-				trans += " rotateZ("+this._rotation+"deg)";
-			} else {
-				trans += " rotate("+this._rotation+"deg)";
-			}
-			
-			if(dino) {
-				var m = this._matrix,
-					M11 = m.M11.toFixed(8),
-					M12 = m.M12.toFixed(8),
-					M21 = m.M21.toFixed(8),
-					M22 = m.M22.toFixed(8);
-
-				filter += " progid:DXImageTransform.Microsoft.Matrix(M11="+M11+", M12="+M12+", M21="+M21+", M22="+M22+",sizingMethod='auto expand')";
+			if(Crafty.support.css3dtransform) trans.push("rotateZ("+this._rotation+"deg)");
+			else trans.push("rotate("+this._rotation+"deg)");
+		}
+		
+		if(this._flipX) {
+			trans.push("scaleX(-1)");
+			if(prefix === "ms" && Crafty.support.version < 9) {
+				this._filters.flipX = "fliph";
 			}
 		}
 		
-		if(old.flipX !== this.flipX) {
-			trans += " scaleX(-1)";
-			if(dino) {
-				filter += " fliph";
-			}
-		}
-		
-		if(old.flipY !== this.flipY) {
-			trans += " scaleY(-1)";
-			if(dino) {
-				filter += " flipv";
+		if(this._flipY) {
+			trans.push("scaleY(-1)");
+			if(prefix === "ms" && Crafty.support.version < 9) {
+				this._filters.flipY = "flipv";
 			}
 		}
 		
 		//apply the filters if IE
-		if(dino) {
-			style.filter = filter.substr(1);
+		if(prefix === "ms" && Crafty.support.version < 9) {
+			this.applyFilters();
 		}
 		
-		trans = trans.substr(1);
-		style.transform = trans;
-		style[prefix+"Transform"] = trans;
+		style.transform = trans.join(" ");
+		style[prefix+"Transform"] = trans.join(" ");
 		
-		//update old properties
-		old.x = this.x;
-		old.y = this.y;
-		old.w = this.w;
-		old.h = this.h;
-		old.z = this.z;
-		old.rotation = this.rotation;
-		old.alpha = this.alpha;
-		old.flipX = this.flipX;
-		old.flipY = this.flipY;
-		
-		this.trigger("Draw", {type: "DOM"});
+		this.trigger("Draw", {style: style, type: "DOM", co: co});
 		
 		return this;
+	},
+	
+	applyFilters: function() {
+		this._element.style.filter = "";
+		var str = "";
+		
+		for(var filter in this._filters) {
+			if(!this._filters.hasOwnProperty(filter)) continue;
+			str += this._filters[filter] + " ";
+		}
+		
+		this._element.style.filter = str;
 	},
 	
 	/**@
@@ -2253,6 +2590,8 @@ Crafty.c("DOM", {
 			}
 		}
 		
+		this.trigger("Change");
+		
 		return this;
 	}
 });
@@ -2298,8 +2637,8 @@ Crafty.extend({
 		*/
 		inner: function(obj) { 
 			var rect = obj.getBoundingClientRect(),
-				x = rect.left + window.pageXOffset,
-				y = rect.top + window.pageYOffset,
+				x = rect.left + (window.pageXOffset ? window.pageXOffset : document.body.scrollTop),
+				y = rect.top + (window.pageYOffset ? window.pageYOffset : document.body.scrollLeft),
 				borderX,
 				borderY;
 			
@@ -2364,17 +2703,15 @@ Crafty.extend({
 		*/
 		translate: function(x,y) {
 			return {
-				x: x - Crafty.stage.x + document.body.scrollLeft + document.documentElement.scrollLeft - Crafty.viewport.x,
-				y: y - Crafty.stage.y + document.body.scrollTop + document.documentElement.scrollTop - Crafty.viewport.y
+				x: x - Crafty.stage.x + document.body.scrollLeft + document.documentElement.scrollLeft - Crafty.viewport._x,
+				y: y - Crafty.stage.y + document.body.scrollTop + document.documentElement.scrollTop - Crafty.viewport._y
 			}
 		}
 	}
-});
-
-Crafty.extend({
+});Crafty.extend({
 	/**@
 	* #Crafty.randRange
-	* @category Math
+	* @category Misc
 	* @sign public Number Crafty.randRange(Number from, Number to)
 	* @param from - Lower bound of the range
 	* @param to - Upper bound of the range
@@ -2384,30 +2721,11 @@ Crafty.extend({
 		return Math.round(Math.random() * (to - from) + from);
 	},
 	
-	/**@
-	* #Crafty.randRange
-	* @category Math
-	* @sign public Number Crafty.randRange(Number from, Number to)
-	* @param from - Lower bound of the range
-	* @param to - Upper bound of the range
-	* Returns a random number between (and including) the two numbers.
-	*/
 	zeroFill: function(number, width) {
 		width -= number.toString().length;
 		if (width > 0)
 			return new Array(width + (/\./.test( number ) ? 2 : 1)).join( '0' ) + number;
 		return number.toString();
-	},
-	
-	/**@
-	* #Crafty.n
-	* @category Math
-	* @sign public Number Crafty.n(* n)
-	* @param n - Any value that will be converted to an int
-	* Cast anything to a number. If it can't it will return 0 (none of this NaN rubbish).
-	*/
-	n: function(n) {
-		return isNaN(+n) ? 0 : +n;
 	},
 	
 	/**@
@@ -2437,19 +2755,15 @@ Crafty.extend({
 	sprite: function(tile, tileh, url, map, paddingX, paddingY) {
 		var pos, temp, x, y, w, h, img;
 		
-		//if no tile value, default to 1
+		//if no tile value, default to 16
 		if(typeof tile === "string") {
-			paddingY = paddingX;
-			paddingX = map;
-			map = tileh;
-			url = tile;
+			map = url;
+			url = tileh;
 			tile = 1;
 			tileh = 1;
 		}
 		
 		if(typeof tileh == "string") {
-			paddingY = paddingX;
-			paddingX = map;
 			map = url;
 			url = tileh;
 			tileh = tile;
@@ -2457,8 +2771,8 @@ Crafty.extend({
 		
 		//if no paddingY, use paddingX
 		if(!paddingY && paddingX) paddingY = paddingX;
-		paddingX = Crafty.n(paddingX); //just incase
-		paddingY = Crafty.n(paddingY);
+		paddingX = parseInt(paddingX || 0, 10); //just incase
+		paddingY = parseInt(paddingY || 0, 10);
 		
 		img = Crafty.assets[url];
 		if(!img) {
@@ -2480,71 +2794,39 @@ Crafty.extend({
 			if(!map.hasOwnProperty(pos)) continue;
 			
 			temp = map[pos];
-			x = temp[0] * tile + paddingX;
-			y = temp[1] * tileh + paddingY;
+			x = temp[0] * (tile + paddingX);
+			y = temp[1] * (tileh + paddingY);
 			w = temp[2] * tile || tile;
 			h = temp[3] * tileh || tileh;
 			
+			/**@
+			* #Sprite
+			* @category Graphics
+			* Component for using tiles in a sprite map.
+			*/
 			Crafty.c(pos, {
-				__image: url,
-				__coord: [x,y,w,h],
-				__tile: tile,
-				__tileh: tileh,
-				__padding: [paddingX, paddingY],
-				__trim: null,
-				img: img,
 				ready: false,
+				__coord: [x,y,w,h],
 				
 				init: function() {
-					this.addComponent("Sprite");
+					this.requires("Sprite");
 					this.__trim = [0,0,0,0];
+					this.__image = url;
 					this.__coord = [this.__coord[0], this.__coord[1], this.__coord[2], this.__coord[3]];
+					this.__tile = tile;
+					this.__tileh = tileh;
+					this.__padding = [paddingX, paddingY];
+					this.img = img;
 		
 					//draw now
 					if(this.img.complete && this.img.width > 0) {
 						this.ready = true;
+						this.trigger("Change");
 					}
 
 					//set the width and height to the sprite size
 					this.w = this.__coord[2];
 					this.h = this.__coord[3];
-					
-                    var draw = function(e) {
-    					var co = this.__coord,
-							old = this._changed,
-							pos = e.pos || this,
-							context = Crafty.canvas.context;
-							
-						if(e.type === "canvas") {
-							//draw the image on the canvas element
-							try {
-							context.drawImage(this.img, //image element
-								co[0], //x position on sprite
-								co[1], //y position on sprite
-								co[2], //width on sprite
-								co[3], //height on sprite
-								pos.x, //x position on canvas
-								pos.y, //y position on canvas
-								this.w, //width on canvas
-								this.h //height on canvas
-							);
-							
-							} catch(err) {
-								console.log(err, co, pos, this);
-							}
-						} else if(e.type === "DOM") {
-							//check if the sprite changed
-							if(old.cox !== co[0] || old.coy !== co[1]) {
-								this._element.style.background = "url('" + this.__image + "') no-repeat -" + co[0] + "px -" + co[1] + "px";
-								old.cox = co[0];
-								old.coy = co[1];
-							}
-						}
-					};
-                    
-					this.bind("Draw", draw).bind("RemoveComponent", function(id) {
-                        if(id === pos) this.unbind("Draw", draw);  
-                    });
 				}
 			});
 		}
@@ -2656,7 +2938,7 @@ Crafty.extend({
 		* positions are not exactly where they are on screen. To get the exact position, 
 		* simply add `Crafty.viewport.x` onto the entities `x` position.
 		*/
-		x: 0,
+		_x: 0,
 		/**@
 		* #Crafty.viewport.y
 		* @comp Crafty.viewport
@@ -2667,30 +2949,31 @@ Crafty.extend({
 		* positions are not exactly where they are on screen. To get the exact position, 
 		* simply add `Crafty.viewport.y` onto the entities `y` position.
 		*/
-		y: 0,
+		_y: 0,
 		
 		scroll: function(axis, v) {
 			v = Math.floor(v);
 			var change = (v - this[axis]), //change in direction
 				context = Crafty.canvas.context,
-				style = Crafty.stage.inner.style;
+				style = Crafty.stage.inner.style,
+				canvas;
 			
 			//update viewport and DOM scroll
 			this[axis] = v;
-			if(axis == 'x') {
+			if(axis == '_x') {
 				if(context) context.translate(change, 0);
 			} else {
 				if(context) context.translate(0, change);
 			}
-			
-			style[axis === 'x' ? "left" : "top"] = ~~v + "px";
+			if(context) Crafty.DrawManager.drawAll();
+			style[axis == '_x' ? "left" : "top"] = ~~v + "px";
 		},
 		
 		rect: function() {
-			return {x: -this.x, y: -this.y, w: this.width, h: this.height};
+			return {_x: -this._x, _y: -this._y, _w: this.width, _h: this.height};
 		},
 		
-		init: function(w, h) {
+		init: function(w,h) {
 			Crafty.DOM.window.init();
 			
 			//fullscreen if mobile or not specified
@@ -2731,12 +3014,24 @@ Crafty.extend({
 					if(Crafty._canvas) {
 						Crafty._canvas.width = w + "px";
 						Crafty._canvas.height = h + "px";
+						Crafty.DrawManager.drawAll();
 					}
 				}
 				
 				offset = Crafty.DOM.inner(Crafty.stage.elem);
 				Crafty.stage.x = offset.x;
 				Crafty.stage.y = offset.y;
+			});
+			
+			Crafty.addEvent(this, window, "blur", function() {
+				if(Crafty.settings.get("autoPause")) {
+					Crafty.pause();
+				}
+			});
+			Crafty.addEvent(this, window, "focus", function() {
+				if(Crafty._paused) {
+					Crafty.pause();
+				}
 			});
 			
 			//make the stage unselectable
@@ -2751,6 +3046,9 @@ Crafty.extend({
 			});
 			Crafty.settings.modify("stageContextMenu", false);
 			
+			Crafty.settings.register("autoPause", function(){});
+			Crafty.settings.modify("autoPause", false);
+
 			//add to the body and give it an ID if not exists
 			if(!crstage) {
 				document.body.appendChild(Crafty.stage.elem);
@@ -2779,7 +3077,7 @@ Crafty.extend({
 				
 				//stop mobile zooming and scrolling
 				meta.setAttribute("name", "viewport");
-				meta.setAttribute("content", "width=device-width, initial-scale=0.5, maximum-scale=0.5, user-scalable=no");
+				meta.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no");
 				head.appendChild(meta);
 				
 				//hide the address bar
@@ -2796,14 +3094,29 @@ Crafty.extend({
 				Crafty.stage.x = 0;
 				Crafty.stage.y = 0;
 				
-				//scale up
-				elem[Crafty.support.prefix + "Transform"] = "scale3d(2, 2, 0) translate3d(200px, 110px, 0)";
 			} else {
 				elem.position = "relative";
 				//find out the offset position of the stage
 				offset = Crafty.DOM.inner(Crafty.stage.elem);
 				Crafty.stage.x = offset.x;
 				Crafty.stage.y = offset.y;
+			}
+			
+			if(Crafty.support.setter) {
+				//define getters and setters to scroll the viewport
+				this.__defineSetter__('x', function(v) { this.scroll('_x', v); });
+				this.__defineSetter__('y', function(v) { this.scroll('_y', v); });
+				this.__defineGetter__('x', function() { return this._x; });
+				this.__defineGetter__('y', function() { return this._y; });
+			//IE9
+			} else if(Crafty.support.defineProperty) {
+				Object.defineProperty(this, 'x', {set: function(v) { this.scroll('_x', v); }, get: function() { return this._x; }});
+				Object.defineProperty(this, 'y', {set: function(v) { this.scroll('_y', v); }, get: function() { return this._y; }});
+			} else {
+				//create empty entity waiting for enterframe
+				this.x = this._x;
+				this.y = this._y;
+				Crafty.e("viewport"); 
 			}
 		}
 	},
@@ -3007,9 +3320,7 @@ Crafty.extend({
 				/(o)pera(?:.*version)?[ \/]([\w.]+)/.exec(ua) || 
 				/(ms)ie ([\w.]+)/.exec(ua) || 
 				/(moz)illa(?:.*? rv:([\w.]+))?/.exec(ua) || [],
-		mobile = /iPad|iPod|iPhone|Android|webOS/i.exec(ua),
-		testDiv,
-		testCanvas;
+		mobile = /iPad|iPod|iPhone|Android|webOS/i.exec(ua);
 	
 	if(mobile) Crafty.mobile = mobile[0];
 	
@@ -3071,16 +3382,27 @@ Crafty.extend({
 	* @comp Crafty.support
 	* Is the `canvas` element supported?
 	*/
-	testCanvas = document.createElement("canvas")
-	support.canvas = ('getContext' in testCanvas);
+	support.canvas = ('getContext' in document.createElement("canvas"));
 	
-	testDiv = document.createElement("div");
-	support.css3dtransform = (typeof testDiv.style[support.prefix + "Perspective"] !== "undefined");
-	
-	//clear the test elements
-	testCanvas = testDiv = null;
+	support.css3dtransform = (typeof document.createElement("div").style[support.prefix + "Perspective"] !== "undefined");
 })();
 
+/**
+* Entity fixes the lack of setter support
+*/
+Crafty.c("viewport", {
+	init: function() {
+		this.bind("EnterFrame", function() {
+			if(Crafty.viewport._x !== Crafty.viewport.x) {
+				Crafty.viewport.scroll('_x', Crafty.viewport.x);
+			}
+			
+			if(Crafty.viewport._y !== Crafty.viewport.y) {
+				Crafty.viewport.scroll('_y', Crafty.viewport.y);
+			}
+		});
+	}
+});
 /**@
 * #Canvas
 * @category Graphics
@@ -3094,52 +3416,85 @@ Crafty.c("Canvas", {
 			Crafty.canvas.init();
 		}
 		
-		Crafty.register.push(this);
+		//increment the amount of canvas objs
+		Crafty.DrawManager.total2D++;
+		
+		this.bind("Change", function(e) {
+			//if within screen, add to list	
+			if(this._changed === false) {
+				this._changed = Crafty.DrawManager.add(e || this, this);
+			} else {
+				if(e) this._changed = Crafty.DrawManager.add(e, this);
+			}
+		});
+		
+		this.bind("Remove", function() {
+			Crafty.DrawManager.total2D--;
+			Crafty.DrawManager.add(this,this);
+		});
 	},
 	
 	/**@
 	* #.draw
 	* @comp Canvas
-	* @sign public this .draw()
+	* @sign public this .draw([[Context ctx, ]Number x, Number y, Number w, Number h])
+	* @param ctx - Canvas 2D context if drawing on another canvas is required
+	* @param x - X offset for drawing a segment
+	* @param y - Y offset for drawing a segment
+	* @param w - Width of the segement to draw
+	* @param h - Height of the segment to draw
 	* @triggers Draw
 	* Method to draw the entity on the canvas element. Can pass rect values for redrawing a segment of the entity.
 	*/
-	draw: function() {
-		if(!this.ready) return;
+	draw: function(ctx,x,y,w,h) {
+		if(!this.ready) return; 
+		if(arguments.length === 4) {
+			h = w;
+			w = y;
+			y = x;
+			x = ctx;
+			ctx = Crafty.canvas.context;
+		}
 		
-		var ctx = Crafty.canvas.context,
-			old = this._changed,
-			globalAlpha,
-			pos;
+		var pos = { //inlined pos() function, for speed
+				_x: (this._x + (x || 0)),
+				_y: (this._y + (y || 0)),
+				_w: (w || this._w),
+				_h: (h || this._h)
+			},
+			context = ctx || Crafty.canvas.context,
+			coord = this.__coord || [0,0,0,0],
+			co = {
+				x: coord[0] + (x || 0),
+				y: coord[1] + (y || 0),
+				w: w || coord[2],
+				h: h || coord[3]
+			};
 			
-		if(old.rotation !== this.rotation) {
-			ctx.save();
+		if(this._mbr) {
+			context.save();
 			
-			ctx.translate(this._origin.x + this.x, this._origin.y + this.y);
-			ctx.rotate((this.rotation % 360) * (Math.PI / 180));
+			context.translate(this._origin.x + this._x, this._origin.y + this._y);
+			pos._x = -this._origin.x;
+			pos._y = -this._origin.y;
 			
-			pos = {x: -this._origin.x, y: -this._origin.y};
+			context.rotate((this._rotation % 360) * (Math.PI / 180));
 		}
 		
 		//draw with alpha
-		if(old.alpha !== this.alpha) {
-			globalAlpha = ctx.globalAlpha;
-			ctx.globalAlpha = this.alpha;
+		if(this._alpha < 1.0) {
+			var globalpha = context.globalAlpha;
+			context.globalAlpha = this._alpha;
 		}
 		
-		this.trigger("Draw", {type: "canvas", pos: pos});
+		this.trigger("Draw", {type: "canvas", pos: pos, co: co, ctx: context});
 		
-		if(old.rotation !== this.rotation) {
-			
-			ctx.restore();
+		if(this._mbr) {
+			context.restore();
 		}
-		
-		if(globalAlpha) {
-			ctx.globalAlpha = globalAlpha;
+		if(globalpha) {
+			context.globalAlpha = globalpha;
 		}
-		
-		this.reset();
-		
 		return this;
 	}
 });
@@ -3184,30 +3539,31 @@ Crafty.extend({
 				return;
 			}
 			
-			//create canvas element
+			//create 3 empty canvas elements
 			var c;
 			c = document.createElement("canvas");
 			c.width = Crafty.viewport.width;
 			c.height = Crafty.viewport.height;
-			//c.style.position = 'absolute';
-			//c.style.left = "0px";
-			//c.style.top = "0px";
+			c.style.position = 'absolute';
+			c.style.left = "0px";
+			c.style.top = "0px";
 			
 			Crafty.stage.elem.appendChild(c);
 			Crafty.canvas.context = c.getContext('2d');
-			Crafty.canvas.elem = c;
+			Crafty.canvas._canvas = c;
 		}
 	}
-});
-
-Crafty.extend({
+});Crafty.extend({
 	down: null, //object mousedown, waiting for up
 	over: null, //object mouseover, waiting for out
 	mouseObjs: 0,
+	mousePos: {},
+	lastEvent: null,
 	keydown: {},
 		
 	mouseDispatch: function(e) {
 		if(!Crafty.mouseObjs) return;
+		Crafty.lastEvent = e;
 		
 		if(e.type === "touchstart") e.type = "mousedown";
 		else if(e.type === "touchmove") e.type = "mousemove";
@@ -3219,38 +3575,50 @@ Crafty.extend({
 			i = 0, l,
 			pos = Crafty.DOM.translate(e.clientX, e.clientY),
 			x, y,
-			dupes = {};
+			dupes = {},
+			tar = e.target?e.target:e.srcElement;
 		
-		e.realX = x = pos.x;
-		e.realY = y = pos.y;
+		e.realX = x = Crafty.mousePos.x = pos.x;
+		e.realY = y = Crafty.mousePos.y = pos.y;
 		
-		//search for all mouse entities
-		q = Crafty.map.search({x: x, y:y, w:1, h:1}, false);
-		
-		for(l=q.length;i<l;++i) {
-			//check if has mouse component
-			if(!q[i].__c.Mouse) continue;
+		if (tar.nodeName != "CANVAS") {
+			// we clicked on a dom element
+			while (typeof (tar.id) != 'string' && tar.id.indexOf('ent') == -1) {
+				tar = tar.parentNode;
+			}
+			ent = Crafty(parseInt(tar.id.replace('ent', '')))
+			if (ent.has('Mouse') && ent.isAt(x,y))
+				closest = ent;
+		}
+		if(!closest) {
+			//search for all mouse entities
+			q = Crafty.map.search({_x: x, _y:y, _w:1, _h:1}, false);
 			
-			var current = q[i],
-				flag = false;
+			for(l=q.length;i<l;++i) {
+				//check if has mouse component
+				if(!q[i].__c.Mouse) continue;
 				
-			//weed out duplicates
-			if(dupes[current[0]]) continue;
-			else dupes[current[0]] = true;
-			
-			if(current.map) {
-				if(current.map.containsPoint(x, y)) {
-					flag = true;
+				var current = q[i],
+					flag = false;
+					
+				//weed out duplicates
+				if(dupes[current[0]]) continue;
+				else dupes[current[0]] = true;
+				
+				if(current.map) {
+					if(current.map.containsPoint(x, y)) {
+						flag = true;
+					}
+				} else if(current.isAt(x, y)) flag = true;
+				
+				if(flag && (current._z >= maxz || maxz === -1)) {
+					//if the Z is the same, select the closest GUID
+					if(current._z === maxz && current[0] < closest[0]) {
+						continue;
+					}
+					maxz = current._z;
+					closest = current;
 				}
-			} else if(current.isAt(x, y)) flag = true;
-			
-			if(flag && (current._z >= maxz || maxz === -1)) {
-				//if the Z is the same, select the closest GUID
-				if(current._z === maxz && current[0] < closest[0]) {
-					continue;
-				}
-				maxz = current._z;
-				closest = current;
 			}
 		}
 		
@@ -3285,6 +3653,10 @@ Crafty.extend({
 				this.over.trigger("MouseOut", e);
 				this.over = null;
 			}
+		}
+		
+		if (e.type === "mousemove") {
+			this.lastEvent = e;
 		}
 	},
 	
@@ -3358,7 +3730,7 @@ Crafty.c("Mouse", {
 			poly = new Crafty.polygon(args);
 		}
 		
-		poly.shift(this.x, this.y);
+		poly.shift(this._x, this._y);
 		this.map = poly;
 		
 		this.attach(this.map);
@@ -3394,8 +3766,8 @@ Crafty.c("Draggable", {
 			if(e.button !== 0) return;
 			
 			//start drag
-			this._startX = e.realX - this.x;
-			this._startY = e.realY - this.y;
+			this._startX = e.realX - this._x;
+			this._startY = e.realY - this._y;
 			this._dragging = true;
 			
 			Crafty.addEvent(this, Crafty.stage.elem, "mousemove", this._ondrag);
@@ -3666,91 +4038,13 @@ Crafty.c("Twoway", {
 				this.y -= jump;
 				this._falling = true;
 			}
-		}).bind("keydown", function() {
+		}).bind("KeyDown", function() {
 			if(this.isDown("UP_ARROW") || this.isDown("W")) this._up = true;
 		});
 		
 		return this;
 	}
 });
-
-
-Crafty.c("Animation", {
-	_reel: null,
-	
-	init: function() {
-		this._reel = {};
-	},
-	
-	addAnimation: function(label, skeleton) {
-		var key,
-			lastKey = 0,
-			i = 0, j,
-			frame,
-			prev,
-			prop,
-			diff = {},
-			p,
-			temp,
-			frames = [];
-		
-		//loop over every frame
-		for(key in skeleton) {
-			
-			frame = skeleton[key];
-			prev = skeleton[lastKey] || this;
-			diff = {};
-			
-			//find the difference
-			for(prop in frame) {
-				if(typeof frame[prop] !== "number") {
-					diff[prop] = frame[prop];
-					continue;
-				}
-				
-				diff[prop] = (frame[prop] - prev[prop]) / (key - lastKey);
-			}
-			
-			for(i = +lastKey + 1, j = 1; i <= +key; ++i, ++j) {
-				temp = {};
-				for(p in diff) {
-					if(typeof diff[p] === "number") {
-						temp[p] = prev[p] + diff[p] * j;
-					} else {
-						temp[p] = diff[p];
-					}
-				}
-				
-				frames[i] = temp;
-			}
-			lastKey = key;
-		}
-		
-		this._reel[label] = frames;
-		
-		return this;
-	},
-	
-	playAnimation: function(label) {
-		var reel = this._reel[label],
-			i = 0,
-			l = reel.length,
-			prop;
-		
-		this.bind("EnterFrame", function e() {
-			for(prop in reel[i]) {
-				this[prop] = reel[i][prop];
-			}
-			i++;
-			
-			if(i > l) {
-				this.trigger("AnimationEnd");
-				this.unbind("EnterFrame", e);
-			}
-		});
-	}
-});
-
 /**@
 * #SpriteAnimation
 * @category Animation
@@ -3790,7 +4084,7 @@ Crafty.c("SpriteAnimation", {
 	* @triggers AnimationEnd - When the animation finishes
 	*/
 	animate: function(id, fromx, y, tox) {
-		var reel, i, tile, duration;
+		var reel, i, tile, tileh, duration, pos;
         
         //play a reel
 		if(arguments.length < 4 && typeof fromx === "number") {
@@ -3812,7 +4106,8 @@ Crafty.c("SpriteAnimation", {
 				if (y === -1) this._frame.repeatInfinitly = true;
 				else this._frame.repeat = y;
 			}
-			var pos = this._frame.reel[0];
+			
+			pos = this._frame.reel[0];
 			this.__coord[0] = pos[0];
 			this.__coord[1] = pos[1];
 
@@ -3823,20 +4118,32 @@ Crafty.c("SpriteAnimation", {
 			i = fromx;
 			reel = [];
 			tile = this.__tile;
+			tileh = this.__tileh;
 				
 			if (tox > fromx) {
 				for(;i<=tox;i++) {
-					reel.push([i * tile, y * tile]);
+					reel.push([i * tile, y * tileh]);
 				}
 			} else {
 				for(;i>=tox;i--) {
-					reel.push([i * tile, y * tile]);
+					reel.push([i * tile, y * tileh]);
 				}
 			}
 			
 			this._reels[id] = reel;
 		} else if(typeof fromx === "object") {
-			this._reels[id] = fromx;
+			i=0;
+			reel = [];
+			tox = fromx.length-1;
+			tile = this.__tile;
+			tileh = this.__tileh;
+			
+			for(;i<=tox;i++) {
+				pos = fromx[i];
+				reel.push([pos[0] * tile, pos[1] * tileh]);
+			}
+			
+			this._reels[id] = reel;
 		}
 		
 		return this;
@@ -3957,8 +4264,21 @@ Crafty.c("Tween", {
             }
             
             this.bind("EnterFrame", function d(e) {
+				if (this.has('Mouse')) {
+					var over = Crafty.over,
+						mouse = Crafty.mousePos;
+					if (over && over[0] == this[0] && !this.isAt(mouse.x, mouse.y)) {
+						this.trigger('MouseOut', Crafty.lastEvent);
+						Crafty.over = null;
+					}
+					else if ((!over || over[0] != this[0]) && this.isAt(mouse.x, mouse.y)) {
+						Crafty.over = this;
+						this.trigger('MouseOver', Crafty.lastEvent);
+					}
+				}
                 if(e.frame >= endFrame) {
                     this.unbind("EnterFrame", d);
+					this.trigger("TweenEnd");
                     return;
                 }
                 for(var prop in props) {
@@ -3967,67 +4287,6 @@ Crafty.c("Tween", {
             });
         });
         return this;
-	}
-});
-
-
-
-/**@
-* #Sprite
-* @category Graphics
-* Component for using tiles in a sprite map.
-*/
-Crafty.c("Sprite", {			
-	/**@
-	* #.sprite
-	* @comp Sprite
-	* @sign public this .sprite(Number x, Number y, Number w, Number h)
-	* @param x - X cell position 
-	* @param y - Y cell position
-	* @param w - Width in cells
-	* @param h - Height in cells
-	* Uses a new location on the sprite map as its sprite.
-	*
-	* Values should be in tiles or cells (not pixels).
-	*/
-	sprite: function(x,y,w,h) {
-		this.__coord = [
-			x * this.__tile + this.__padding[0] + this.__trim[0],
-			y * this.__tileh + this.__padding[1] + this.__trim[1],
-			this.__trim[2] || w * this.__tile || this.__tile,
-			this.__trim[3] || h * this.__tileh || this.__tileh
-		];
-		
-		return this;
-	},
-	
-	/**@
-	* #.crop
-	* @comp Sprite
-	* @sign public this .crop(Number x, Number y, Number w, Number h)
-	* @param x - Offset x position
-	* @param y - Offset y position
-	* @param w - New width
-	* @param h - New height
-	* If the entity needs to be smaller than the tile size, use this method to crop it.
-	*
-	* The values should be in pixels rather than tiles.
-	*/
-	crop: function(x,y,w,h) {
-		this.__trim = [];
-		this.__trim[0] = x;
-		this.__trim[1] = y;
-		this.__trim[2] = w;
-		this.__trim[3] = h;
-		
-		this.__coord[0] += x;
-		this.__coord[1] += y;
-		this.__coord[2] = w;
-		this.__coord[3] = h;
-		this.w = w;
-		this.h = h;
-		
-		return this;
 	}
 });
 
@@ -4047,7 +4306,7 @@ Crafty.c("Color", {
 				e.style.lineHeight = 0;
 			} else if(e.type === "canvas") {
 				if(this._color) e.ctx.fillStyle = this._color;
-				e.ctx.fillRect(e.pos.x,e.pos.y,e.pos.w,e.pos.h);
+				e.ctx.fillRect(e.pos._x,e.pos._y,e.pos._w,e.pos._h);
 			}
 		});
 	},
@@ -4085,7 +4344,7 @@ Crafty.c("Tint", {
     		var context = e.ctx || Crafty.canvas.context;
 			
 			context.fillStyle = this._color || "rgb(0,0,0)";
-			context.fillRect(e.pos.x, e.pos.y, e.pos.w, e.pos.h);
+			context.fillRect(e.pos._x, e.pos._y, e.pos._w, e.pos._h);
 		};
         
 		this.bind("Draw", draw).bind("RemoveComponent", function(id) {
@@ -4128,7 +4387,11 @@ Crafty.c("Image", {
 				var context = e.ctx;
 				
 				context.fillStyle = this._pattern;
-				context.fillRect(this.x, this.y, this.w, this.h);
+				
+				//context.save();
+				//context.translate(e.pos._x, e.pos._y);
+				context.fillRect(this._x,this._y,this._w, this._h);
+				//context.restore();
 			} else if(e.type === "DOM") {
 				if(this.__image) 
 					e.style.background = "url(" + this.__image + ") "+this._repeat;
@@ -4262,38 +4525,253 @@ Crafty.extend({
 	}
 });
 
-Crafty.register = [];
-Crafty.draw = function() {	
-	//loop over entities to draw
-	var i = 0, r = Crafty.register, l = r.length, e, o,
-		ctx = Crafty.canvas.context, canv = Crafty.canvas.elem;
+/**
+* Draw Manager will manage objects to be drawn and implement
+* the best method of drawing in both DOM and canvas
+*/
+Crafty.DrawManager = (function() {
+	/** array of dirty rects on screen */
+	var register = [],
+	/** array of DOMs needed updating */
+		dom = [];
 	
-	//clear the canvas on each game loop
-	if(ctx) {
-		ctx.clearRect(0, 0, canv.width, canv.height);
-		//TODO: sort canvas entities not DOM
-		r.sort(function(a,b) { return a._global - b._global; });
-	}
-	
-	for(;i < l; ++i) {
-		e = r[i];
-		o = e._changed;
+	return {
+		/** Quick count of 2D objects */
+		total2D: Crafty("2D").length,
 		
-		//check for rotation changes
-		if(o.rotation != e.rotation) {
-			e.rotated();
-		}
+		onScreen: function(rect) {
+			return Crafty.viewport._x + rect._x + rect._w > 0 && Crafty.viewport._y + rect._y + rect._h > 0 &&
+				   Crafty.viewport._x + rect._x < Crafty.viewport.width && Crafty.viewport._y + rect._y < Crafty.viewport.height;
+		},
 		
-		//check for position changes
-		if(o.x !== e.x || o.y !== e.x || o.w !== e.x || o.h !== e.h) {
-			e.moved();
-		}
-		
-		e.draw();
-	}
-};
+		merge: function(set) {
+			do {
+				var newset = [], didMerge = false, i = 0,
+					l = set.length, current, next, merger;
+				
+				while(i < l) {
+					current = set[i];
+					next = set[i+1];
+					
+					if(i < l - 1 && current._x < next._x + next._w && current._x + current._w > next._x &&
+									current._y < next._y + next._h && current._h + current._y > next._y) {	
+						
+						merger = {
+							_x: ~~Math.min(current._x, next._x),
+							_y: ~~Math.min(current._y, next._y),
+							_w: Math.max(current._x, next._x) + Math.max(current._w, next._w),
+							_h: Math.max(current._y, next._y) + Math.max(current._h, next._h)
+						};
+						merger._w = merger._w - merger._x;
+						merger._h = merger._h - merger._y;
+						merger._w = (merger._w == ~~merger._w) ? merger._w : merger._w + 1 | 0;
+						merger._h = (merger._h == ~~merger._h) ? merger._h : merger._h + 1 | 0;
+						
+						newset.push(merger);
+					
+						i++;
+						didMerge = true;
+					} else newset.push(current);
+					i++;
+				}
 
-Crafty.extend({
+				set = newset.length ? Crafty.clone(newset) : set;
+				
+				if(didMerge) i = 0;
+			} while(didMerge);
+			
+			return set;
+		},
+		
+		/**
+		* Calculate the bounding rect of dirty data
+		* and add to the register
+		*/
+		add: function add(old,current) {
+			if(!current) {
+				dom.push(old);
+				return;
+			}
+			
+			var rect,
+				before = old._mbr || old,
+				after = current._mbr || current;
+				
+			if(old === current) {
+				rect = old.mbr() || old.pos();
+			} else {
+				rect =  {
+					_x: ~~Math.min(before._x, after._x),
+					_y: ~~Math.min(before._y, after._y),
+					_w: Math.max(before._w, after._w) + Math.max(before._x, after._x),
+					_h: Math.max(before._h, after._h) + Math.max(before._y, after._y)
+				};
+				
+				rect._w = (rect._w - rect._x);
+				rect._h = (rect._h - rect._y);
+			}
+			
+			if(rect._w === 0 || rect._h === 0 || !this.onScreen(rect)) {
+				return false;
+			}
+			
+			//floor/ceil
+			rect._x = ~~rect._x;
+			rect._y = ~~rect._y;
+			rect._w = (rect._w === ~~rect._w) ? rect._w : rect._w + 1 | 0;
+			rect._h = (rect._h === ~~rect._h) ? rect._h : rect._h + 1 | 0;
+			
+			//add to register, check for merging
+			register.push(rect);
+			
+			//if it got merged
+			return true;
+		},
+		
+		debug: function() {
+			console.log(register, dom);
+		},
+		
+		drawAll: function(rect) {
+			var rect = rect || Crafty.viewport.rect(), q,
+				i = 0, l, ctx = Crafty.canvas.context,
+				current;
+			
+			q = Crafty.map.search(rect);
+			l = q.length;
+			
+			ctx.clearRect(rect._x, rect._y, rect._w, rect._h);
+			
+			q.sort(function(a,b) { return a._global - b._global; });
+			for(;i<l;i++) {
+				current = q[i];
+				if(current._visible && current.__c.Canvas) {
+					current.draw();
+					current._changed = false;
+				}
+			}
+		},
+
+		/**
+		* Calculate the common bounding rect of multiple canvas entities
+		* Returns coords
+		*/
+		boundingRect: function(set) {
+			if (!set || !set.length) return;
+			var newset = [], i = 1,
+			l = set.length, current, master=set[0], tmp;
+			master=[master._x, master._y, master._x + master._w, master._y + master._h];
+			while(i < l) {
+				current = set[i];
+				tmp = [current._x, current._y, current._x + current._w, current._y + current._h];
+				if (tmp[0]<master[0]) master[0] = tmp[0];
+				if (tmp[1]<master[1]) master[1] = tmp[1];
+				if (tmp[2]>master[2]) master[2] = tmp[2];
+				if (tmp[3]>master[3]) master[3] = tmp[3];
+				i++;
+			}
+			tmp=master;
+			master={_x:tmp[0],_y:tmp[1],_w:tmp[2]-tmp[0],_h:tmp[3]-tmp[1]};
+
+			return master;
+		},
+
+		/**
+		* Redraw all the dirty regions
+		*/
+		draw: function draw() {
+			//if nothing in register, stop
+			if(!register.length && !dom.length) return;
+			
+			var i = 0, l = register.length, k = dom.length, rect, q,
+				j, len, dupes, obj, ent, objs = [], ctx = Crafty.canvas.context;
+				
+			//loop over all DOM elements needing updating
+			for(;i<k;++i) {
+				dom[i].draw()._changed = false;
+			}
+			//reset counter and DOM array
+			dom.length = i = 0;
+			
+			//again, stop if nothing in register
+			if(!l) { return; }
+			
+			//if the amount of rects is over 60% of the total objects
+			//do the naive method redrawing
+			if(l / this.total2D > 0.6) {
+				this.drawAll();
+				register.length = 0;
+				return;
+			}
+			
+			register = this.merge(register);
+			for(;i<l;++i) { //loop over every dirty rect
+				rect = register[i];
+				if(!rect) continue;
+				q = Crafty.map.search(rect, false); //search for ents under dirty rect
+				
+				dupes = {};
+				
+				//loop over found objects removing dupes and adding to obj array
+				for(j = 0, len = q.length; j < len; ++j) {
+					obj = q[j];
+					
+					if(dupes[obj[0]] || !obj._visible || !obj.__c.Canvas)
+						continue;
+					dupes[obj[0]] = true;
+					
+					objs.push({obj: obj, rect: rect});
+				}
+				
+				//clear the rect from the main canvas
+				ctx.clearRect(rect._x, rect._y, rect._w, rect._h);
+				
+			}
+			
+			//sort the objects by the global Z
+			objs.sort(function(a,b) { return a.obj._global - b.obj._global; });
+			if(!objs.length){  return; }
+			
+			//loop over the objects
+			for(i = 0, l = objs.length; i < l; ++i) {
+				obj = objs[i];
+				rect = obj.rect;
+				ent = obj.obj;
+				
+				var area = ent._mbr || ent, 
+					x = (rect._x - area._x <= 0) ? 0 : ~~(rect._x - area._x),
+					y = (rect._y - area._y < 0) ? 0 : ~~(rect._y - area._y),
+					w = ~~Math.min(area._w - x, rect._w - (area._x - rect._x), rect._w, area._w),
+					h = ~~Math.min(area._h - y, rect._h - (area._y - rect._y), rect._h, area._h);
+				
+				//no point drawing with no width or height
+				if(h === 0 || w === 0) continue;
+				
+				ctx.save();
+				ctx.beginPath();
+				ctx.moveTo(rect._x, rect._y);
+				ctx.lineTo(rect._x + rect._w, rect._y);
+				ctx.lineTo(rect._x + rect._w, rect._h + rect._y);
+				ctx.lineTo(rect._x, rect._h + rect._y);
+				ctx.lineTo(rect._x, rect._y);
+				
+				ctx.clip();
+				
+				ent.draw();
+				ctx.closePath();
+				ctx.restore();
+
+				//allow entity to re-register
+				ent._changed = false;
+			}
+			
+			//empty register
+			register.length = 0;
+			//all merged IDs are now invalid
+			merged = {};
+		}
+	};
+})();Crafty.extend({
 	/**@
 	* #Crafty.isometric
 	* @category 2D
@@ -4334,13 +4812,318 @@ Crafty.extend({
 				n = y * this._tile / 4,
 				n = n - z * (this._tile / 2);
 				
-			obj.attr({x: m  + Crafty.viewport.x, y: n  + Crafty.viewport.y}).z += z;
+			obj.attr({x: m  + Crafty.viewport._x, y: n  + Crafty.viewport._y}).z += z;
 			return this;
 		}
 	}
-});
+});//Particle component
+//Based on Parcycle by Mr. Speaker, licensed under the MIT,
+//Ported by Leo Koppelkamm
+//**This is canvas only & won't do anything if the browser doesn't support it!**
 
-Crafty.extend({
+Crafty.c("particles", {
+	init: function () {
+		//We need to clone it
+		this._Particles = Crafty.clone(this._Particles);
+	},
+	particles: function (options) {
+
+		if (!Crafty.support.canvas || Crafty.deactivateParticles) return this;
+
+		//If we drew on the main canvas, we'd have to redraw 
+		//potentially huge sections of the screen every frame
+		//So we create a separate canvas, where we only have to redraw 
+		//the changed particles.
+		var c, ctx, relativeX, relativeY, bounding;
+
+		c = document.createElement("canvas");
+		c.width = Crafty.viewport.width;
+		c.height = Crafty.viewport.height;
+		c.style.position = 'absolute';
+
+		Crafty.stage.elem.appendChild(c);
+
+		ctx = c.getContext('2d');
+
+		this._Particles.init(options);
+
+		relativeX = this.x + Crafty.viewport.x;
+		relativeY = this.y + Crafty.viewport.y;
+		this._Particles.position = this._Particles.vectorHelpers.create(relativeX, relativeY);
+
+		var oldViewport = {x: Crafty.viewport.x, y:Crafty.viewport.y};
+		
+		this.bind('EnterFrame', function () {
+			relativeX = this.x + Crafty.viewport.x;
+			relativeY = this.y + Crafty.viewport.y;
+			this._Particles.viewportDelta = {x: Crafty.viewport.x - oldViewport.x, y: Crafty.viewport.y - oldViewport.y};
+
+			oldViewport = {x: Crafty.viewport.x, y:Crafty.viewport.y};
+				
+			this._Particles.position = this._Particles.vectorHelpers.create(relativeX, relativeY);
+
+			//Selective clearing
+			if (typeof Crafty.DrawManager.boundingRect == 'function') {
+				bounding = Crafty.DrawManager.boundingRect(this._Particles.register);
+				if (bounding) ctx.clearRect(bounding._x, bounding._y, bounding._w, bounding._h);
+			} else {
+				ctx.clearRect(0, 0, Crafty.viewport.width, Crafty.viewport.height);
+			}
+
+			//This updates all particle colors & positions
+			this._Particles.update();
+
+			//This renders the updated particles
+			this._Particles.render(ctx);
+		});
+		return this;
+	},
+	_Particles: {
+		presets: {
+			maxParticles: 150,
+			size: 18,
+			sizeRandom: 4,
+			speed: 1,
+			speedRandom: 1.2,
+			// Lifespan in frames
+			lifeSpan: 29,
+			lifeSpanRandom: 7,
+			// Angle is calculated clockwise: 12pm is 0deg, 3pm is 90deg etc.
+			angle: 65,
+			angleRandom: 34,
+			startColour: [255, 131, 0, 1],
+			startColourRandom: [48, 50, 45, 0],
+			endColour: [245, 35, 0, 0],
+			endColourRandom: [60, 60, 60, 0],
+			// Only applies when fastMode is off, specifies how sharp the gradients are drawn
+			sharpness: 20,
+			sharpnessRandom: 10,
+			// Random spread from origin
+			spread: 10,
+			// How many frames should this last
+			duration: -1,
+			// Will draw squares instead of circle gradients
+			fastMode: false,
+			gravity:{x: 0, y: 0.1},
+			// sensible values are 0-3
+			jitter: 0,
+			
+			//Don't modify the following
+			particles: [],
+			active: true,
+			particleCount: 0,
+			elapsedFrames: 0,
+			emissionRate: 0,
+			emitCounter: 0,
+			particleIndex: 0
+		},
+
+
+		init: function (options) {
+			this.position = this.vectorHelpers.create(0, 0);
+			if (typeof options == 'undefined') var options = {};
+
+			//Create current config by mergin given options and presets.
+			for (key in this.presets) {
+				if (typeof options[key] != 'undefined') this[key] = options[key];
+				else this[key] = this.presets[key];
+			}
+
+			this.emissionRate = this.maxParticles / this.lifeSpan;
+			this.positionRandom = this.vectorHelpers.create(this.spread, this.spread);
+		},
+
+		addParticle: function () {
+			if (this.particleCount == this.maxParticles) {
+				return false;
+			}
+
+			// Take the next particle out of the particle pool we have created and initialize it	
+			var particle = new this.particle(this.vectorHelpers);
+			this.initParticle(particle);
+			this.particles[this.particleCount] = particle;
+			// Increment the particle count
+			this.particleCount++;
+
+			return true;
+		},
+		RANDM1TO1: function() {
+			return Math.random() * 2 - 1;
+		},		
+		initParticle: function (particle) {
+			particle.position.x = this.position.x + this.positionRandom.x * this.RANDM1TO1();
+			particle.position.y = this.position.y + this.positionRandom.y * this.RANDM1TO1();
+
+			var newAngle = (this.angle + this.angleRandom * this.RANDM1TO1()) * (Math.PI / 180); // convert to radians
+			var vector = this.vectorHelpers.create(Math.sin(newAngle), -Math.cos(newAngle)); // Could move to lookup for speed
+			var vectorSpeed = this.speed + this.speedRandom * this.RANDM1TO1();
+			particle.direction = this.vectorHelpers.multiply(vector, vectorSpeed);
+
+			particle.size = this.size + this.sizeRandom * this.RANDM1TO1();
+			particle.size = particle.size < 0 ? 0 : ~~particle.size;
+			particle.timeToLive = this.lifeSpan + this.lifeSpanRandom * this.RANDM1TO1();
+
+			particle.sharpness = this.sharpness + this.sharpnessRandom * this.RANDM1TO1();
+			particle.sharpness = particle.sharpness > 100 ? 100 : particle.sharpness < 0 ? 0 : particle.sharpness;
+			// internal circle gradient size - affects the sharpness of the radial gradient
+			particle.sizeSmall = ~~ ((particle.size / 200) * particle.sharpness); //(size/2/100)
+			var start = [
+				this.startColour[0] + this.startColourRandom[0] * this.RANDM1TO1(),
+				this.startColour[1] + this.startColourRandom[1] * this.RANDM1TO1(),
+				this.startColour[2] + this.startColourRandom[2] * this.RANDM1TO1(),
+				this.startColour[3] + this.startColourRandom[3] * this.RANDM1TO1()
+				];
+
+			var end = [
+				this.endColour[0] + this.endColourRandom[0] * this.RANDM1TO1(),
+				this.endColour[1] + this.endColourRandom[1] * this.RANDM1TO1(),
+				this.endColour[2] + this.endColourRandom[2] * this.RANDM1TO1(),
+				this.endColour[3] + this.endColourRandom[3] * this.RANDM1TO1()
+				];
+
+			particle.colour = start;
+			particle.deltaColour[0] = (end[0] - start[0]) / particle.timeToLive;
+			particle.deltaColour[1] = (end[1] - start[1]) / particle.timeToLive;
+			particle.deltaColour[2] = (end[2] - start[2]) / particle.timeToLive;
+			particle.deltaColour[3] = (end[3] - start[3]) / particle.timeToLive;
+		},
+		update: function () {
+			if (this.active && this.emissionRate > 0) {
+				var rate = 1 / this.emissionRate;
+				this.emitCounter++;
+				while (this.particleCount < this.maxParticles && this.emitCounter > rate) {
+					this.addParticle();
+					this.emitCounter -= rate;
+				}
+				this.elapsedFrames++;
+				if (this.duration != -1 && this.duration < this.elapsedFrames) {
+					this.stop();
+				}
+			}
+
+			this.particleIndex = 0;
+			this.register = [];
+			var draw;
+			while (this.particleIndex < this.particleCount) {
+
+				var currentParticle = this.particles[this.particleIndex];
+
+				// If the current particle is alive then update it
+				if (currentParticle.timeToLive > 0) {
+
+					// Calculate the new direction based on gravity
+					currentParticle.direction = this.vectorHelpers.add(currentParticle.direction, this.gravity);
+					currentParticle.position = this.vectorHelpers.add(currentParticle.position, currentParticle.direction);
+					currentParticle.position = this.vectorHelpers.add(currentParticle.position, this.viewportDelta);
+					if (this.jitter) {
+						currentParticle.position.x += this.jitter * this.RANDM1TO1(); 
+						currentParticle.position.y += this.jitter * this.RANDM1TO1();
+					}
+					currentParticle.timeToLive--;
+
+					// Update colours
+					var r = currentParticle.colour[0] += currentParticle.deltaColour[0];
+					var g = currentParticle.colour[1] += currentParticle.deltaColour[1];
+					var b = currentParticle.colour[2] += currentParticle.deltaColour[2];
+					var a = currentParticle.colour[3] += currentParticle.deltaColour[3];
+
+					// Calculate the rgba string to draw.
+					draw = [];
+					draw.push("rgba(" + (r > 255 ? 255 : r < 0 ? 0 : ~~r));
+					draw.push(g > 255 ? 255 : g < 0 ? 0 : ~~g);
+					draw.push(b > 255 ? 255 : b < 0 ? 0 : ~~b);
+					draw.push((a > 1 ? 1 : a < 0 ? 0 : a.toFixed(2)) + ")");
+					currentParticle.drawColour = draw.join(",");
+
+					if (!this.fastMode) {
+						draw[3] = "0)";
+						currentParticle.drawColourEnd = draw.join(",");
+					}
+
+					this.particleIndex++;
+				} else {
+					// Replace particle with the last active 
+					if (this.particleIndex != this.particleCount - 1) {
+						this.particles[this.particleIndex] = this.particles[this.particleCount - 1];
+					}
+					this.particleCount--;
+				}
+				var rect = {};
+				rect._x = ~~currentParticle.position.x;
+				rect._y = ~~currentParticle.position.y;
+				rect._w = currentParticle.size;
+				rect._h = currentParticle.size;
+
+				this.register.push(rect);
+			}
+		},
+
+		stop: function () {
+			this.active = false;
+			this.elapsedFrames = 0;
+			this.emitCounter = 0;
+		},
+
+		render: function (context) {
+
+			for (var i = 0, j = this.particleCount; i < j; i++) {
+				var particle = this.particles[i];
+				var size = particle.size;
+				var halfSize = size >> 1;
+
+				if (particle.position.x + size < 0 
+					|| particle.position.y + size < 0 
+					|| particle.position.x - size > Crafty.viewport.width 
+					|| particle.position.y - size > Crafty.viewport.height) {
+					//Particle is outside
+					continue;
+				}
+				var x = ~~particle.position.x;
+				var y = ~~particle.position.y;
+
+				if (this.fastMode) {
+					context.fillStyle = particle.drawColour;
+				} else {
+					var radgrad = context.createRadialGradient(x + halfSize, y + halfSize, particle.sizeSmall, x + halfSize, y + halfSize, halfSize);
+					radgrad.addColorStop(0, particle.drawColour);
+					//0.9 to avoid visible boxing
+					radgrad.addColorStop(0.9, particle.drawColourEnd);
+					context.fillStyle = radgrad;
+				}
+				context.fillRect(x, y, size, size);
+			}
+		},
+		particle: function (vectorHelpers) {
+			this.position = vectorHelpers.create(0, 0);
+			this.direction = vectorHelpers.create(0, 0);
+			this.size = 0;
+			this.sizeSmall = 0;
+			this.timeToLive = 0;
+			this.colour = [];
+			this.drawColour = "";
+			this.deltaColour = [];
+			this.sharpness = 0;
+		},
+		vectorHelpers: {
+			create: function (x, y) {
+				return {
+					"x": x,
+					"y": y
+				};
+			},
+			multiply: function (vector, scaleFactor) {
+				vector.x *= scaleFactor;
+				vector.y *= scaleFactor;
+				return vector;
+			},
+			add: function (vector1, vector2) {
+				vector1.x += vector2.x;
+				vector1.y += vector2.y;
+				return vector1;
+			}
+		}
+	}
+});Crafty.extend({
 	/**@
 	* #Crafty.audio
 	* @category Audio
@@ -4609,9 +5392,7 @@ Crafty.extend({
 
 //stop sounds on Pause
 Crafty.bind("Pause", function() {Crafty.audio.mute()});
-Crafty.bind("Unpause", function() {Crafty.audio.mute()});
-
-/**@
+Crafty.bind("Unpause", function() {Crafty.audio.mute()});/**@
 * #Text
 * @category Graphics
 * @requires DOM
@@ -4643,9 +5424,7 @@ Crafty.c("Text", {
 		this.trigger("Change");
 		return this;
 	}
-});
-
-Crafty.extend({
+});Crafty.extend({
 	/**@
 	* #Crafty.assets
 	* @category Assets
@@ -4742,6 +5521,4 @@ Crafty.extend({
 			};
 		}
 	}
-});
-
-})(Crafty,window,window.document);
+});})(Crafty,window,window.document);

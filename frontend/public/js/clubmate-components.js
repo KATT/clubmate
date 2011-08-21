@@ -101,10 +101,30 @@ CM.Components = function() {
 					this.y = (this.Object.options.y + this.Object.options.mapY*CM.Settings.MapHeight)* CM.Settings.TileHeight;
 					if(this.Object.options.alias) {
 						if(!this.textEntity) {
-							this.textEntity = Crafty.e('2D, DOM, Text').text(this.Object.options.alias);
+							this.textEntity = Crafty.e('2D, DOM, Text, spriteLabel').text(this.Object.options.alias);
 						}
 						this.UpdateEntitiesPositions();
 					}
+				},
+				
+				ShowMessage: function(message) {
+					var obj = this.Object;
+					var text = obj.options.alias ? obj.options.alias + ': ' + message : message;
+					if(!this.textEntity) {
+						this.textEntity = Crafty.e('2D, DOM, Text, spriteLabel');
+					}
+					var textEntity = this.textEntity;
+					if(textEntity.resetTimeout) {
+						$clear(textEntity.resetTimeout);
+					}
+					textEntity.text(text);
+					textEntity.resetTimeout = setTimeout(function() {textEntity.text(obj.options.alias ? obj.options.alias : '');}, 3000);
+					this.UpdateEntitiesPositions();
+				}
+			});
+			Crafty.c('spriteLabel', {
+				w: 150,
+				init: function() {
 				}
 			});
 		}

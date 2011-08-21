@@ -11,6 +11,7 @@ var CM = function() {
 		NetMan: {},
 	    Settings: {},
 	    Strings: {},
+		KeyboardListener: {},
 		State: {
 			Player: {},
 			Objects: {},
@@ -45,6 +46,27 @@ CM.UIManager = function() {
 			Crafty.scene('main');
 			Crafty.viewport.x = CM.Settings.xOffset*CM.Settings.TileWidth;
 			Crafty.viewport.y = CM.Settings.yOffset*CM.Settings.TileHeight;
+			var chatField = new Element('input', {id: 'chatField', type: 'text'});
+			chatField.inject($('controlPanel'));
+			var keyboardListener = new Keyboard({
+				active: true
+			});
+			keyboardListener.addEvents({
+			    'ctrl+shift': function() {
+					if(document.activeElement == chatField) {
+						chatField.blur();
+					} else {
+						chatField.focus();
+					}
+				},
+				'enter': function() {
+					if(document.activeElement == chatField) {
+						CM.NetMan.Send('say', {message: chatField.value});
+						chatField.value = '';
+					}
+				}
+			});
+			CM.UIManager.KeyboardListener = keyboardListener;
 		},
 		InitEntityForObject: function(obj) {
 			var e = Crafty.e(obj.options.components);
@@ -93,6 +115,13 @@ CM.NetMan = function() {
 				response.data.each(function(item, i) {
 					CM[response.entityType]['on' + response.action](item);
 				});
+			});
+			Socket.on('message', function (response) {
+				if(response.object) {
+					CM.State.Objects[response.object].Entity.ShowMessage(response.message);
+				} else {
+					CM.UIManager.ShowMessage(response.message);
+				}
 			});
 		},
 		Send: function(command, data) {
@@ -211,15 +240,17 @@ CM.Object = new Class({
 });
 CM.Object.extend({
 	onNew: function(data) {
-		data.components = 'animate, gameSprite, ' + data.sprite.key
-		var obj = new CM.Object(data);
-		CM.State.Objects[obj.options._id] = obj;
-		if(CM.NetMan.LoadedAssets[data.sprite.tileSet]) {
-			CM.UIManager.InitEntityForObject(obj);
-		} else {
-			CM.NetMan.GetTileSet(data.sprite.tileSet);
+		if(data._id != CM.State.Player.options._id) {
+			data.components = 'animate, gameSprite, ' + data.sprite.key
+			var obj = new CM.Object(data);
+			CM.State.Objects[obj.options._id] = obj;
+			if(CM.NetMan.LoadedAssets[data.sprite.tileSet]) {
+				CM.UIManager.InitEntityForObject(obj);
+			} else {
+				CM.NetMan.GetTileSet(data.sprite.tileSet);
+			}
+			//CM.UIManager.Scroll(player.options.x, player.options.y);
 		}
-		//CM.UIManager.Scroll(player.options.x, player.options.y);
 	},
 	onUpdate: function(data) {
 		var obj = CM.State.Objects[data._id];

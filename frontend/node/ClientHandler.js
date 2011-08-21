@@ -76,7 +76,9 @@ var ClientHandler = new Class({
 					//Get map chunk for player x & y
 					client.on('movePlayer', ch.movePlayer);
 					client.on('getTileSet', ch.getTileSet);
+					client.on('say', ch.say);
 					client.on('getMaps', ch.getMaps);
+					client.on('disconnect', ch.disconnect);
 				});
 			};
 
@@ -140,7 +142,6 @@ var ClientHandler = new Class({
 	
 	addClient : function(client) {
 		client.on('login', ch.login);
-		client.on('disconnect', ch.disconnect);
 	},
 	
 	movePlayer: function(req) {
@@ -238,6 +239,20 @@ var ClientHandler = new Class({
 		} catch(err) {
 			console.log('getMaps Error: ' + err);
 		}
+	},
+	
+	say: function(req) {
+		var client = this;
+		client.get('player', function(err, player) {
+			if(err) {
+				console.log(err);
+				throw err;
+			}
+			ch.sockets.in(Map.getRoomID(player.mapX, player.mapY)).emit('message', {
+				object: player._id,
+				message: req.data.message
+			});
+		});
 	}
 });
 
